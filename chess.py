@@ -1,6 +1,7 @@
 
 # Example file showing a basic pygame "game loop"
 import pygame
+from random import randint
 WINDOWHEIGHT = 1080
 WINDOWWIDTH = 720
 # Setup and Initialization
@@ -8,6 +9,9 @@ pygame.init()
 game_window = pygame.display.set_mode((WINDOWHEIGHT, WINDOWWIDTH))
 clock = pygame.time.Clock()
 game_is_running = True
+red_color = randint(0, 255)
+green_color = randint(0, 255)
+blue_color = randint(0, 255)
 
 while game_is_running:
     
@@ -26,7 +30,7 @@ while game_is_running:
 
 
     # fill the screen with a color to wipe away anything from last frame
-    game_window.fill("purple")
+    game_window.fill([red_color, green_color, blue_color])
 
 
     # RENDER
