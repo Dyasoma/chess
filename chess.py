@@ -2,17 +2,12 @@
 # Example file showing a basic pygame "game loop"
 import pygame, sys
 from pygame.locals import *
-import math
-WINDOWWIDTH = 750
-WINDOWHEIGHT = 500
+WINDOWWIDTH = 800
+WINDOWHEIGHT = 800
 FPS = 30
 
-
-
-DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
+screen = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
 pygame.display.set_caption("Chess")
-
-
 
 # Setup and Initialization
 pygame.init()
@@ -30,11 +25,10 @@ while game_is_running:
             pygame.quit()
             sys.exit()
     
+    #UPDATE
+
+    # RENDER
     pygame.display.update()
     FPSCLOCK.tick(FPS)
-    #UPDATE
-    # fill the screen with a color to wipe away anything from last frame
-    # RENDER
-    # RENDER YOUR GAME HERE
-    # flip() the display to put your work on screen
+    
 pygame.quit()
