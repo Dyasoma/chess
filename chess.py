@@ -8,7 +8,7 @@ WINDOWHEIGHT = 800
 WINDOWTOBOARDRATIO = 1
 SQUARECOUNT = 8
 BOARDSIDELENGTH = WINDOWWIDTH * WINDOWTOBOARDRATIO
-SQUARESIZE = BOARDSIDELENGTH / SQUARECOUNT
+SQUARESIZE = int(BOARDSIDELENGTH / SQUARECOUNT)
 BOARDPOSX = (WINDOWWIDTH - BOARDSIDELENGTH) / 2
 BOARDPOSY = (WINDOWHEIGHT - BOARDSIDELENGTH) / 2
 FPS = 30
@@ -152,6 +152,35 @@ class Board:
         return rec
 
 
+class Pawn:
+    def __init__(self, size, color):
+        self.size = size
+        self.color = color
+        self.surface = self.__create_piece_surface()
+        self.rect = self.__create_piece_rect()
+
+    def __create_piece_surface(self) -> pygame.Surface:
+        """
+        """
+        # creates the surface for which transparency is allowed
+        #surf = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
+        #surf.fill((0, 0, 0, 0))   # fills surface with "transparent" color.
+        #return surf
+        if self.color == WHITE:
+            surface = pygame.image.load("pawn_white.png")
+        else:
+            surface = pygame.image.load("pawn_black.png")
+        return pygame.transform.smoothscale(surface, (self.size, self.size))
+
+    def __create_piece_rect(self) -> pygame.Rect:
+        """
+
+        """
+        return self.surface.get_rect()
+    
+
+    #def selected(mouse_position):
+        #if 
 
 
 def main():
@@ -163,24 +192,32 @@ def main():
     pygame.init()
     game_is_running = True
     clock = pygame.time.Clock()
+    mouse_down = False
     # Chess pieces
+    pawn = Pawn(SQUARESIZE, WHITE)
 
-    chessboard = Board(
-        BOARDSIDELENGTH, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN
-    )
+    chessboard = Board(BOARDSIDELENGTH, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN)
     while game_is_running:
 
-        # Inputs
+
         # poll for events
-        # pygame.QUIT event means the user clicked X to close your window
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == MOUSEBUTTONDOWN:
+                mouse_down = True
+            if event.type == MOUSEBUTTONUP:
+                mouse_up = True
+
+        
 
         # UPDATE
 
+        #if mouse_down and pawn.selected():
+
         # RENDER
+        chessboard.surface.blit(pawn.surface, pawn.rect)
         screen.blit(chessboard.surface, chessboard.rect)
         pygame.display.update()
         clock.tick(FPS)
