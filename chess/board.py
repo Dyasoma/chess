@@ -1,6 +1,7 @@
 import pygame
-from .constants import BOARDPOSX, BOARDPOSY
+from .constants import BOARDPOSX, BOARDPOSY, SQUARESIZE
 from .square import Square
+from .piece import Piece
 
 
 class Board:
@@ -41,12 +42,11 @@ class Board:
         Side effect : creates instance attribute "struct" and mutates it
         """
         struct: list = []
-        square_size = self.height / self.square_count
         for row_index in range(self.square_count):
             row = []
             for col_index in range(self.square_count):
                 color = (0, 0, 0)
-                square = Square(square_size, color, row_index, col_index)
+                square = Square(SQUARESIZE, color, row_index, col_index)
                 row.append(square)  # creates a square and adds it to the struct
             struct.append(row)
         return struct
@@ -94,3 +94,5 @@ class Board:
         returns : None
         """
         window.blit(self.surface, (BOARDPOSX, BOARDPOSY))
+
+    #def move_piece(self, piece : Piece, pos : list):
