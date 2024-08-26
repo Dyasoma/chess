@@ -1,21 +1,21 @@
 import sys
 import pygame
+from random import randint
 from pygame.locals import *
-from chess.constants import WINDOWWIDTH, WINDOWHEIGHT, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN, WHITE, BLACK
+from chess.constants import WINDOWWIDTH, WINDOWHEIGHT, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN, WHITE, BLACK, SQUARESIZE
 from chess.board import Board
 from chess.piece import Piece
 # from chess.square import Square
 # from chess.piece import Pawn
-FPS = 60
+FPS = 1
 
-start = [5, 3]
 
 def main():
     WINDOWSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     pygame.display.set_caption("Chess")
-    WINDOWSURF.fill("White")
+    WINDOWSURF.fill("Grey")
     chessboard = Board(BOARDSIDELENGTH, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN)
-    piece = Piece(WHITE, "pawn") # get piece
+    piece = Piece(BLACK, 5, 2, "queen") # get piece
 
     # Setup and Initialization
     pygame.init()
@@ -32,14 +32,15 @@ def main():
                 sys.exit()
 
         # UPDATE
+        chessboard.move_piece(piece, randint(0, 7), randint(0, 7)) #place piece onto structure
 
         # RENDER
+            
+
+        chessboard.draw_piece(piece, piece.row , piece.col)
         chessboard.draw_board(WINDOWSURF)
 
-        #place piece onto structure
-        chessboard.struct[start[0]][start[1]].contents = piece
         #draw piece onto board
-        chessboard.surface.blit(piece.surface, chessboard.struct[start[0]][start[1]].rel_pos)
         pygame.display.update()
         clock.tick(FPS)
 
