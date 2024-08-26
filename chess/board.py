@@ -11,7 +11,7 @@ class Board:
         self,
         width: int,
         height: int,
-        square_count,
+        square_count: int,
         color_dark: pygame.Color,
         color_light: pygame.Color,
     ):
@@ -45,11 +45,7 @@ class Board:
         for row_index in range(self.square_count):
             row = []
             for col_index in range(self.square_count):
-                # checks if square is even or odd, setting even to white and odd to black
-                if (row_index + col_index) % 2 == 0:
-                    color = self.color_dark
-                else:
-                    color = self.color_light
+                color = (0, 0, 0)
                 square = Square(square_size, color, row_index, col_index)
                 row.append(square)  # creates a square and adds it to the struct
             struct.append(row)
@@ -60,8 +56,10 @@ class Board:
         create_board_surface(self):
         creates the board surface, using the pygame Surface object class, and assigning the returned
         surface as an instance attribute of the board object.
-        Serves as the "image" of the board
-        Board begins "blank" i.e black, blits for a given location the corresponding square.
+        Creates a black surface.
+        Sets each squares color instance attribute.
+        blits square from struct attribute onto surface attribute.
+        Serves as the "image" of the board.
         Returns : pygame Surface object
         """
         # Surf is first the entire size of the board
@@ -70,6 +68,11 @@ class Board:
         for row_index in range(self.square_count):
             for col_index in range(self.square_count):
                 current_square: Square = self.struct[row_index][col_index]
+                # checks if square is even or odd, setting even to white and odd to black
+                if (row_index + col_index) % 2 == 0:
+                    current_square.update_color(self.color_dark)
+                else:
+                    current_square.update_color(self.color_light)
                 surf.blit(current_square.surface, current_square.rel_pos)
         return surf
 
@@ -82,3 +85,12 @@ class Board:
         """
         rec = self.surface.get_rect(topleft=(BOARDPOSX, BOARDPOSY))
         return rec
+    
+    def draw_board(self, window : pygame.Surface) -> None:
+        """
+        draw_board(self, window : pygame.Surface):
+        Draws the board onto the pygame surface object called window. 
+        Blits the board onto the window
+        returns : None
+        """
+        window.blit(self.surface, (BOARDPOSX, BOARDPOSY))

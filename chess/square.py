@@ -20,10 +20,8 @@ class Square:
         self.col = col
         # rel_pos is relative to the board
         # abs_pos is relative to the entire window
-        self.rel_pos = (
-            col * size,
-            row * size,
-        )  # columns go left to right, rows go up and down
+        self.rel_pos = (col * size, row * size)
+        # columns go left to right, rows go up and down
         self.abs_pos = (col * size + BOARDPOSX, row * size + BOARDPOSY)
         self.surface = self.__create_square_surface()
         self.rect = self.__create_square_rect()
@@ -50,4 +48,15 @@ class Square:
         """
         rec = self.surface.get_rect(topleft=self.abs_pos)
         return rec
+
+
+    def update_color(self, color : pygame.Color) -> None:
+        """
+        update_color(self, color : pygame.Color):
+        updates the color instance attribute
+        Changes the surface to be that color
+        returns : None
+        """
+        self.color = color
+        self.surface.fill(self.color)
 

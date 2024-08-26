@@ -1,19 +1,19 @@
 import sys
 import pygame
 from pygame.locals import *
-from chess.constants import WINDOWWIDTH, WINDOWHEIGHT
+from chess.constants import WINDOWWIDTH, WINDOWHEIGHT, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN
 from chess.board import Board
-from chess.square import Square
-from chess.piece import Pawn
-
-
+# from chess.square import Square
+# from chess.piece import Pawn
 FPS = 60
 
 
+
 def main():
-    screen = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
+    WINDOWSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     pygame.display.set_caption("Chess")
-    screen.fill("White")
+    WINDOWSURF.fill("White")
+    chessboard = Board(BOARDSIDELENGTH, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN)
 
     # Setup and Initialization
     pygame.init()
@@ -32,6 +32,7 @@ def main():
         # UPDATE
 
         # RENDER
+        chessboard.draw_board(WINDOWSURF)
         pygame.display.update()
         clock.tick(FPS)
 
