@@ -1,5 +1,5 @@
 import pygame
-from .constants import BOARDPOSX, BOARDPOSY, SQUARESIZE
+from .constants import BOARDPOSX, BOARDPOSY, SQUARESIZE, EMPTY
 from .piece import Piece
 
 
@@ -90,31 +90,18 @@ class Board:
         """
         move_piece(self, piece: Piece, new_row : int, new_col : int):
         moves the piece on the boards data  structure.
-        updates the pieces row and column attributes. 
-        Then calls the draw piece instance method to draw the piece onto the board
+        updating the pieces data, and the board data.
+        Does not draw pieces, simply updates pieces, and board logic.
         returns : None
         """
-        
-        # Update piece parameters
-        old_row = piece.row
-        old_col = piece.col
-        piece.row = new_row
-        piece.col = new_col
+
+        # Move piece by updating piece parameters
+        (old_row, old_col) = piece.move(new_row, new_col)
+
         # Update board parameters
         self.struct[old_row][old_col] = None
         self.struct[new_row][new_col] = piece
         
-        # draw piece onto new position 
-        self.draw_piece(piece, piece.row, piece.col)
-        # clear from previous position
-        self.clear_piece(piece, old_row, old_col)
-
-
-
-        # put new position
-        # update piece attributes
-
-        # draw the piece onto board
 
     def grid_to_rel_pos(self, row : int, col : int) -> tuple:
         """
@@ -123,6 +110,19 @@ class Board:
         returns : a tuple (x,y)
         """
         return (col * SQUARESIZE, row * SQUARESIZE)
+    
+    def draw_pieces(self):
+        """
+        Draws all pieces located on the board
+        """
+        for i in range(self.square_count):
+            for j in range(self.square_count):
+                contents = self.struct[i][j]
+                if contents == EMPTY:
+                    self.clear_piece(contents, i, j)
+                else:
+                    self.draw_piece(contents, i, j)
+
 
     def draw_piece(self, piece : Piece, row : int, col : int):
         """

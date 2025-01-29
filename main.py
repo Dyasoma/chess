@@ -16,6 +16,7 @@ def main():
     WINDOWSURF.fill("Grey")
     chessboard = Board(BOARDSIDELENGTH, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN)
     piece = Piece(BLACK, 5, 2, "queen") # get piece
+    piece_1 = Piece(WHITE, 5, 2, "queen")
 
     # Setup and Initialization
     pygame.init()
@@ -32,12 +33,11 @@ def main():
                 sys.exit()
 
         # UPDATE
-        chessboard.move_piece(piece, randint(0, 7), randint(0, 7)) #place piece onto structure
-
+        chessboard.move_piece(piece, randint(0, 7), randint(0, 7)) 
+        chessboard.move_piece(piece_1, randint(0, 7), randint(0, 7))
         # RENDER
             
-
-        chessboard.draw_piece(piece, piece.row , piece.col)
+        chessboard.draw_pieces()
         chessboard.draw_board(WINDOWSURF)
 
         #draw piece onto board

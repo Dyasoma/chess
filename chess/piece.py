@@ -38,6 +38,21 @@ class Piece:
         """
         return self.surface.get_rect(topleft = (self.rel_pos))
     
+    def move(self, new_row, new_col):
+        """
+        move(self, row, col):
+        moves the piece by updating its internal parameters
+        returns the pieces old location. 
+        """
+        # move_piece(self, piece, new_row, new_col)
+        # first update piece parameters
+        old_row = self.row
+        old_col = self.col
+        self.row = new_row
+        self.col = new_col
+        return (old_row, old_col)
+
+    
     def get_rel_pos(self) -> tuple:
         """
         get_rel_pos(self) -> tuple:
