@@ -86,6 +86,19 @@ class Board:
         return rec
 
 
+
+    def set_piece(self, piece : Piece, new_row : int, new_col : int):
+        """
+        set_piece(self, piece: Piece, new_row : int, new_col : int):
+        sets the piece on the boards data structure.
+        updating the pieces data, and the board data.
+        returns : None
+        """
+         #ensures board is empty at 
+        if self.struct[new_row][new_col] == None:
+            piece.set(new_row, new_col)
+            self.struct[new_row][new_col] = piece
+
     def move_piece(self, piece : Piece, new_row : int, new_col : int):
         """
         move_piece(self, piece: Piece, new_row : int, new_col : int):
@@ -94,13 +107,19 @@ class Board:
         Does not draw pieces, simply updates pieces, and board logic.
         returns : None
         """
-
+        old_row = piece.row
+        old_col = piece.col
         # Move piece by updating piece parameters
-        (old_row, old_col) = piece.move(new_row, new_col)
+        if new_row in range(0,8) and new_col in range(0,8):
+            (old_row, old_col) = piece.move(new_row, new_col)
 
-        # Update board parameters
-        self.struct[old_row][old_col] = None
-        self.struct[new_row][new_col] = piece
+        # In the case that the move was invalid, piece parameters will not have
+        # changed
+
+        # Update board parameters if move was valid
+        if (old_row, old_col) != (piece.row, piece.col): # old pos != current pos
+            self.struct[old_row][old_col] = None
+            self.struct[new_row][new_col] = piece
         
 
     def grid_to_rel_pos(self, row : int, col : int) -> tuple:
