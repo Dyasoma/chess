@@ -4,10 +4,10 @@ from random import randint
 from pygame.locals import *
 from chess.constants import WINDOWWIDTH, WINDOWHEIGHT, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN, WHITE, BLACK, SQUARESIZE
 from chess.board import Board
-from chess.piece import Piece
+from chess.piece import Pawn
 # from chess.square import Square
 # from chess.piece import Pawn
-FPS = 1
+FPS = 10
 
 
 def main():
@@ -15,9 +15,8 @@ def main():
     pygame.display.set_caption("Chess")
     WINDOWSURF.fill("Grey")
     chessboard = Board(BOARDSIDELENGTH, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN)
-    piece = Piece(BLACK, 5, 2, "queen") # get piece
-    piece_1 = Piece(WHITE, 5, 2, "queen")
-
+    piece = Pawn(WHITE, 0, 0, "pawn") # get piece
+    chessboard.set_piece(piece, 7, 7)
     # Setup and Initialization
     pygame.init()
     game_is_running = True
@@ -33,8 +32,7 @@ def main():
                 sys.exit()
 
         # UPDATE
-        chessboard.move_piece(piece, randint(0, 7), randint(0, 7)) 
-        chessboard.move_piece(piece_1, randint(0, 7), randint(0, 7))
+        chessboard.move_piece(piece, piece.row-1, piece.col) 
         # RENDER
             
         chessboard.draw_pieces()
