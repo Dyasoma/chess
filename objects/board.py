@@ -1,6 +1,6 @@
 import pygame
-from .constants import BOARDPOSX, BOARDPOSY, SQUARESIZE, EMPTY
-from .piece import Piece
+from .constants import BOARDPOSX, BOARDPOSY, SQUARESIZE, EMPTY, SQUARECOUNT, BLACK, WHITE
+from .piece import Piece, Pawn, Knight, Bishop, Rook, Queen, King
 
 
 class Board:
@@ -64,15 +64,7 @@ class Board:
         # we go through the board and for each square, we "blit" onto the board the current square.
         for row_index in range(self.square_count):
             for col_index in range(self.square_count):
-                # checks if square is even or odd, setting even to white and odd to black
-                if (row_index + col_index) % 2 == 0:
-                    square = pygame.Surface((SQUARESIZE, SQUARESIZE))
-                    square.fill(self.color_dark)
-                    surf.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
-                else:
-                    square = pygame.Surface((SQUARESIZE, SQUARESIZE))
-                    square.fill(self.color_light)
-                    surf.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
+                self.draw_square(surf, row_index, col_index)
         return surf
 
     def __create_board_rect(self) -> pygame.Rect:
@@ -85,19 +77,85 @@ class Board:
         rec = self.surface.get_rect(topleft=(BOARDPOSX, BOARDPOSY))
         return rec
 
+    def draw_square(self, surf, row_index, col_index):
+        # checks if square is even or odd, setting even to white and odd to black
+        if ((row_index + col_index) % 2) == 0:
+            square = pygame.Surface((SQUARESIZE, SQUARESIZE))
+            square.fill(self.color_light)
+            surf.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
+        else:
+            square = pygame.Surface((SQUARESIZE, SQUARESIZE))
+            square.fill(self.color_dark)
+            surf.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
 
-
-    def set_piece(self, piece : Piece, new_row : int, new_col : int):
+    def set_piece(self, piece : Piece):
         """
         set_piece(self, piece: Piece, new_row : int, new_col : int):
         sets the piece on the boards data structure.
         updating the pieces data, and the board data.
         returns : None
         """
-         #ensures board is empty at 
+        #ensures board is empty at 
+        '''
         if self.struct[new_row][new_col] == None:
-            piece.set(new_row, new_col)
-            self.struct[new_row][new_col] = piece
+            piece.set_row_col(new_row, new_col) # updates piece parameters
+            self.struct[new_row][new_col] = piece # places piece object onto board structure
+        else:
+            print(f"Piece already exists in row : {new_row} col : {new_col}")
+        '''
+        if self.struct[piece.row][piece.col] == None:
+            self.struct[piece.row][piece.col] = piece
+        else:
+            print(f"Piece already exists in row : {piece.row} col : {piece.col}")
+
+    def is_empty(self, row, col):
+        if not self.in_bounds(row, col):
+            return False
+        return self.struct[row][col] == EMPTY
+
+
+    def get_piece(self, row, col):
+        return self.struct[row][col]
+    
+
+    def in_bounds(self, row, col):
+        return (((0 <= row < SQUARECOUNT ) and (0 <= col < SQUARECOUNT)))
+
+
+    def load_pieces(self, black_pieces : list[Piece], white_pieces : list[Piece]):
+        # generate pawns
+        for i in range(SQUARECOUNT):
+            black_pawn = Pawn(BLACK, 1, i, "pawn")
+            white_pawn = Pawn(WHITE, 6, i, "pawn")
+            black_pieces.append(black_pawn)
+            white_pieces.append(white_pawn)
+
+        # generate black pieces
+        black_rook = Rook(BLACK, 0, 0, "rook")
+        black_rook1 = Rook(BLACK, 0, 7, "rook")
+        black_knight = Knight(BLACK, 0, 1, "knight")
+        black_knight1 = Knight(BLACK, 0, 6, "knight")
+        black_bishop = Bishop(BLACK, 0, 2, "bishop")
+        black_bishop1 = Bishop(BLACK, 0, 5, "bishop")
+        black_king = King(BLACK, 0, 4, "king")
+        black_queen = Queen(BLACK, 0, 3, "queen")
+
+        # generate white pieces
+        white_rook = Rook(WHITE, 7, 0, "rook")
+        white_rook1 = Rook(WHITE, 7, 7, "rook")
+        white_knight = Knight(WHITE, 7, 1, "knight")
+        white_knight1 = Knight(WHITE, 7, 6, "knight")
+        white_bishop = Bishop(WHITE, 7, 2, "bishop")
+        white_bishop1 = Bishop(WHITE, 7, 5, "bishop")
+        white_king = King(WHITE, 7, 4, "king")
+        white_queen = Queen(WHITE, 7, 3, "queen")
+        black_pieces += [black_rook, black_rook1, black_knight, black_knight1, black_bishop, black_bishop1, black_queen, black_king]
+        white_pieces += [white_rook, white_rook1, white_knight, white_knight1, white_bishop, white_bishop1, white_queen, white_king]
+
+        for black_piece in black_pieces:
+            self.set_piece(black_piece)
+        for white_piece in white_pieces:
+           self.set_piece(white_piece)
 
     def move_piece(self, piece : Piece, new_row : int, new_col : int):
         """
@@ -110,14 +168,8 @@ class Board:
         old_row = piece.row
         old_col = piece.col
         # Move piece by updating piece parameters
-        if new_row in range(0,8) and new_col in range(0,8):
-            (old_row, old_col) = piece.move(new_row, new_col)
-
-        # In the case that the move was invalid, piece parameters will not have
-        # changed
-
-        # Update board parameters if move was valid
-        if (old_row, old_col) != (piece.row, piece.col): # old pos != current pos
+        if piece.is_legal_move(new_row, new_col, self):
+            (old_row, old_col) = piece.apply_move(new_row, new_col, self)
             self.struct[old_row][old_col] = None
             self.struct[new_row][new_col] = piece
         
@@ -134,13 +186,13 @@ class Board:
         """
         Draws all pieces located on the board
         """
-        for i in range(self.square_count):
-            for j in range(self.square_count):
-                contents = self.struct[i][j]
-                if contents == EMPTY:
-                    self.clear_piece(contents, i, j)
+        for row in range(self.square_count):
+            for col in range(self.square_count):
+                square = self.struct[row][col]
+                if square == EMPTY:
+                    self.clear_piece(row, col)
                 else:
-                    self.draw_piece(contents, i, j)
+                    self.draw_piece(square, row, col)
 
 
     def draw_piece(self, piece : Piece, row : int, col : int):
@@ -152,32 +204,25 @@ class Board:
         pos = self.grid_to_rel_pos(row, col)
         self.surface.blit(piece.surface, pos)
 
-    def clear_piece(self, piece : Piece, row : int, col : int):
+
+
+    def clear_piece(self, row : int, col : int):
         """
         clear_piece(self, piece : Piece):
-        Clears the piece from the board. "Undrawing" it 
+        Clears the piece from the board. "Undrawing" it
+        Actually just draws the square over that position
         returns : None
         """
         pos = self.grid_to_rel_pos(row, col)
-        if (row + col) % 2 == 0:
-            self.color_square(self.color_dark, row, col)
-        else:
-            self.color_square(self.color_light, row, col)
-
-
-    def color_square(self, color : pygame.Color,  row : int, col : int):
-        """
-        color_square(self, color : pygame.Color,  row : int, col : int):
-
-        Colors the square based on the inputted color, given a row and column on the board.
-        creates a pygames surface, fills it with provided color and then blits it onto the board
-        surface. 
-        returns : None 
-        """
-        square = pygame.Surface((SQUARESIZE, SQUARESIZE))
-        square.fill(color)
-        self.surface.blit(square, (col * SQUARESIZE, row * SQUARESIZE))
+        self.draw_square(self.surface, row, col)
+        #square = pygame.Surface((SQUARESIZE, SQUARESIZE))
+        #if (row + col) % 2 == 0:
+        #    square.fill(self.color_light)
+        #else:
+        #    square.fill(self.color_dark)
+        #self.surface.blit(square, (col * SQUARESIZE, row * SQUARESIZE))
          
+    
 
     def draw_board(self, window : pygame.Surface) -> None:
         """
@@ -187,5 +232,3 @@ class Board:
         returns : None
         """
         window.blit(self.surface, (BOARDPOSX, BOARDPOSY))
-
-    #def move_piece(self, piece : Piece, pos : list):

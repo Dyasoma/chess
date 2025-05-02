@@ -2,43 +2,48 @@ import sys
 import pygame
 from random import randint
 from pygame.locals import *
-from chess.constants import WINDOWWIDTH, WINDOWHEIGHT, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN, WHITE, BLACK, SQUARESIZE
-from chess.board import Board
-from chess.piece import Pawn
-# from chess.square import Square
-# from chess.piece import Pawn
-FPS = 10
+from objects.constants import WINDOWWIDTH, WINDOWHEIGHT, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN, WHITE, BLACK, SQUARESIZE
+from objects.board import Board
+from objects.piece import Pawn, Knight, Bishop, Rook, Queen, King
 
+FPS = 1
 
 def main():
-    WINDOWSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
-    pygame.display.set_caption("Chess")
-    WINDOWSURF.fill("Grey")
-    chessboard = Board(BOARDSIDELENGTH, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN)
-    piece = Pawn(WHITE, 0, 0, "pawn") # get piece
-    chessboard.set_piece(piece, 7, 7)
     # Setup and Initialization
     pygame.init()
     game_is_running = True
     clock = pygame.time.Clock()
+
+    # Setup Game materials
+    WINDOWSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT)) # window
+    pygame.display.set_caption("Chess") # window title
+    WINDOWSURF.fill("Grey") # color of window
+    chessboard = Board(BOARDSIDELENGTH, BOARDSIDELENGTH, SQUARECOUNT, DARKRED, LIGHTBROWN) # create a board
+    black_pieces = []
+    white_pieces = []
+    chessboard.load_pieces(black_pieces, white_pieces)
+    
+    move_value = 0
+
     # Chess pieces
 
     while game_is_running:
-
-        # poll for events
+    # main game loop
+        # Get Input
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
 
         # UPDATE
-        chessboard.move_piece(piece, piece.row-1, piece.col) 
+        
+        #chessboard.move_piece(piece, piece.row + randint(-7, 7), piece.col+randint(-7,7))
+
         # RENDER
             
-        chessboard.draw_pieces()
-        chessboard.draw_board(WINDOWSURF)
+        chessboard.draw_pieces() # draw all pieces onto the board
+        chessboard.draw_board(WINDOWSURF) # draw board onto the window
 
-        #draw piece onto board
         pygame.display.update()
         clock.tick(FPS)
 
