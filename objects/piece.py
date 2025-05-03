@@ -77,7 +77,7 @@ class Piece:
         new_col = self.col
         for dr, dc in directions:
             new_row = self.row + dr
-            new_col = self.row + dc
+            new_col = self.col + dc
             while board.in_bounds(new_row, new_col):
                 # now validate
                 found_piece = board.get_piece(new_row, new_col)

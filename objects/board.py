@@ -1,5 +1,5 @@
 import pygame
-from .constants import BOARDPOSX, BOARDPOSY, SQUARESIZE, EMPTY, SQUARECOUNT, BLACK, WHITE
+from .constants import BOARDPOSX, BOARDPOSY, SQUARESIZE, EMPTY, SQUARECOUNT, BLACK, WHITE, GREEN
 from .piece import Piece, Pawn, Knight, Bishop, Rook, Queen, King
 
 
@@ -77,16 +77,28 @@ class Board:
         rec = self.surface.get_rect(topleft=(BOARDPOSX, BOARDPOSY))
         return rec
 
-    def draw_square(self, surf, row_index, col_index):
+    def draw_square(self, surf, row_index, col_index, color = None):
         # checks if square is even or odd, setting even to white and odd to black
-        if ((row_index + col_index) % 2) == 0:
-            square = pygame.Surface((SQUARESIZE, SQUARESIZE))
-            square.fill(self.color_light)
-            surf.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
+        if color == None:
+            if ((row_index + col_index) % 2) == 0:
+                square = pygame.Surface((SQUARESIZE, SQUARESIZE))
+                square.fill(self.color_light)
+                surf.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
+            else:
+                square = pygame.Surface((SQUARESIZE, SQUARESIZE))
+                square.fill(self.color_dark)
+                surf.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
         else:
-            square = pygame.Surface((SQUARESIZE, SQUARESIZE))
-            square.fill(self.color_dark)
-            surf.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
+                square = pygame.Surface((SQUARESIZE, SQUARESIZE))
+                square.fill(color)
+                surf.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
+
+
+    def draw_valid_moves(self, moves):
+        if not moves:
+            return
+        for move in moves:
+            self.draw_square(self.surface, move[0], move[1], GREEN)
 
     def set_piece(self, piece : Piece):
         """
@@ -114,7 +126,7 @@ class Board:
         return self.struct[row][col] == EMPTY
 
 
-    def get_piece(self, row, col):
+    def get_piece(self, row, col) -> Piece:
         return self.struct[row][col]
     
 
@@ -172,6 +184,7 @@ class Board:
             (old_row, old_col) = piece.apply_move(new_row, new_col, self)
             self.struct[old_row][old_col] = None
             self.struct[new_row][new_col] = piece
+            self.clear_piece(old_row, old_col)
         
 
     def grid_to_rel_pos(self, row : int, col : int) -> tuple:
@@ -189,11 +202,12 @@ class Board:
         for row in range(self.square_count):
             for col in range(self.square_count):
                 square = self.struct[row][col]
-                if square == EMPTY:
-                    self.clear_piece(row, col)
-                else:
+                #if square == EMPTY:
+                #    self.clear_piece(row, col)
+                #else:
+                #    self.draw_piece(square, row, col)
+                if square != EMPTY:
                     self.draw_piece(square, row, col)
-
 
     def draw_piece(self, piece : Piece, row : int, col : int):
         """
@@ -203,6 +217,26 @@ class Board:
         """
         pos = self.grid_to_rel_pos(row, col)
         self.surface.blit(piece.surface, pos)
+
+    def mouse_pos_to_grid(self, pos):
+        """
+        Converts a mouse position to a grid position returning row column tuple
+        """
+        mouse_x = pos[0]
+        mouse_y = pos[1]
+        if not self.rect.collidepoint(mouse_x, mouse_y):
+            return (None, None)
+        
+        col = int((mouse_x - BOARDPOSX) // SQUARESIZE)
+        row = int((mouse_y - BOARDPOSY) // SQUARESIZE)
+
+        # handles the rare case that they select right most or bottom most edge,
+        # leading to row or column value of 8, illegal
+        if 0 <= row < 8 and 0 <= col < 8:
+            return (int(row), int(col))
+        else:
+            return (None, None)
+    
 
 
 
@@ -232,3 +266,6 @@ class Board:
         returns : None
         """
         window.blit(self.surface, (BOARDPOSX, BOARDPOSY))
+    def undraw_moves(self, moves):
+        for move in moves:
+            self.draw_square(self.surface, move[0], move[1])
