@@ -1,5 +1,14 @@
 import pygame
-from .constants import BOARDPOSX, BOARDPOSY, SQUARESIZE, EMPTY, SQUARECOUNT, BLACK, WHITE, GREEN
+from .constants import (
+    BOARDPOSX,
+    BOARDPOSY,
+    SQUARESIZE,
+    EMPTY,
+    SQUARECOUNT,
+    BLACK,
+    WHITE,
+    GREEN,
+)
 from .piece import Piece, Pawn, Knight, Bishop, Rook, Queen, King
 
 
@@ -7,6 +16,7 @@ class Board:
     """
     Represents an nxn checkered board.
     """
+
     def __init__(
         self,
         width: int,
@@ -27,114 +37,134 @@ class Board:
         self.color_dark: pygame.Color = color_dark
         self.square_count: int = square_count
         self.struct: list = self.__create_board_struct()
-        self.surface: pygame.Surface = self.__create_board_surface()
-        self.rect: pygame.Rect = self.__create_board_rect()
-
+        self.surface: pygame.Surface = pygame.Surface((width, height))
+        self.highlighted_surface: pygame.Surface = pygame.Surface(
+            (width, height), flags=pygame.SRCALPHA
+        )
+        self.rect: pygame.Rect = self.surface.get_rect(topleft=(BOARDPOSX, BOARDPOSY))
+        self.__draw_base_board()
+        self.highlighted_squares = []
 
     def __create_board_struct(self) -> list[list]:
         """
-        Creates the instance attribute "struct" for the board object of class Board.
-        refers to the boards data structure, implemented as a list of lists
+        Creates the "struct" for the board.
+        implemented as a list of lists
         Mutates the list as the list is built.
         board.struct[i][j] refers to the ith row, and the jth column of the board.
         Returns : a list of lists
-        Side effect : creates instance attribute "struct" and mutates it
         """
         struct: list = []
         for row_index in range(self.square_count):
             row = []
             for col_index in range(self.square_count):
-                row.append(None)  # Each entry will be None. i.e. empty
+                row.append(EMPTY)
             struct.append(row)
         return struct
 
-    def __create_board_surface(self) -> pygame.Surface:
+    def __draw_base_board(self):
         """
-        create_board_surface(self):
-        creates the board surface, using the pygame Surface object class, and assigning the returned
-        surface as an instance attribute of the board object.
-        Creates a black surface.
-        blits square from struct attribute onto surface attribute.
-        Serves as the "image" of the board.
-        Returns : pygame Surface object
+        draws the board in its initial state
+        a checkerboard with light color in top left corner
         """
-        # Surf is first the entire size of the board
-        surf = pygame.Surface((self.width, self.height))
-
         # we go through the board and for each square, we "blit" onto the board the current square.
-        for row_index in range(self.square_count):
-            for col_index in range(self.square_count):
-                self.draw_square(surf, row_index, col_index)
-        return surf
+        for row in range(self.square_count):
+            for col in range(self.square_count):
+                color = self.color_dark if (row + col) % 2 == 1 else self.color_light
+                self.color_square(row, col)
 
-    def __create_board_rect(self) -> pygame.Rect:
-        """
-        create_board_rect(self)
-        Creates an instance attribute of object Board, using the instance attribute surface.
-        Acts as a wrapper to the get_rect() function for objects of class Surface from pygame module
-        returns : pygame rect object
-        """
-        rec = self.surface.get_rect(topleft=(BOARDPOSX, BOARDPOSY))
-        return rec
-
-    def draw_square(self, surf, row_index, col_index, color = None):
-        # checks if square is even or odd, setting even to white and odd to black
+    def color_square(self, row_index, col_index, color=None):
+        square = pygame.Surface((SQUARESIZE, SQUARESIZE))
         if color == None:
-            if ((row_index + col_index) % 2) == 0:
-                square = pygame.Surface((SQUARESIZE, SQUARESIZE))
-                square.fill(self.color_light)
-                surf.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
-            else:
-                square = pygame.Surface((SQUARESIZE, SQUARESIZE))
-                square.fill(self.color_dark)
-                surf.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
+            color = (
+                self.color_dark
+                if (row_index + col_index) % 2 == 1
+                else self.color_light
+            )
+        square.fill(color)
+        self.surface.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
+
+    def highlight_square(self, row_index, col_index, color, alpha=128):
+        square = pygame.Surface((SQUARESIZE, SQUARESIZE), flags=pygame.SRCALPHA)
+        square.fill((*color, alpha))
+        self.highlighted_surface.blit(
+            square, (col_index * SQUARESIZE, row_index * SQUARESIZE)
+        )
+
+    def draw_highlights(self, color):
+        for square in self.highlighted_squares:
+            self.highlight_square(*square, color)
+
+    def clear_highlights(self):
+        self.highlighted_surface.fill((0, 0, 0, 0))
+
+    def color_square(self, row_index, col_index, color=None, highlight=False):
+        """
+        Colors a given square on the board, creating a square, filling it and blitting it on the board.
+        In the case that a color is not given it paints the board with its original
+        checkerboard colors
+        """
+        # checks if square is even or odd, setting even to white and odd to black
+        square = pygame.Surface((SQUARESIZE, SQUARESIZE))
+        if color == None:
+            color = (
+                self.color_dark
+                if (row_index + col_index) % 2 == 1
+                else self.color_light
+            )
+        if highlight:
+            square = pygame.Surface((SQUARESIZE, SQUARESIZE), flags=pygame.SRCALPHA)
+            square.fill((color[0], color[1], color[2], 128))
         else:
-                square = pygame.Surface((SQUARESIZE, SQUARESIZE))
-                square.fill(color)
-                surf.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
+            square.fill(color)
+        self.surface.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
 
-
-    def draw_valid_moves(self, moves):
+    def draw_legal_moves(self, moves):
         if not moves:
             return
         for move in moves:
-            self.draw_square(self.surface, move[0], move[1], GREEN)
+            self.highlight_square(move[0], move[1], GREEN)
 
-    def set_piece(self, piece : Piece):
+    def set_piece(self, piece: Piece):
         """
-        set_piece(self, piece: Piece, new_row : int, new_col : int):
-        sets the piece on the boards data structure.
-        updating the pieces data, and the board data.
-        returns : None
+        sets the piece on the boards data structure during setup of game.
         """
-        #ensures board is empty at 
-        '''
-        if self.struct[new_row][new_col] == None:
-            piece.set_row_col(new_row, new_col) # updates piece parameters
-            self.struct[new_row][new_col] = piece # places piece object onto board structure
-        else:
-            print(f"Piece already exists in row : {new_row} col : {new_col}")
-        '''
+        # ensures board is empty at location.
         if self.struct[piece.row][piece.col] == None:
             self.struct[piece.row][piece.col] = piece
         else:
-            print(f"Piece already exists in row : {piece.row} col : {piece.col}")
+            raise ValueError(
+                f"Piece already exists in row : {piece.row} col : {piece.col}"
+            )
 
     def is_empty(self, row, col):
         if not self.in_bounds(row, col):
             return False
         return self.struct[row][col] == EMPTY
 
-
     def get_piece(self, row, col) -> Piece:
         return self.struct[row][col]
-    
+
+    def generate_legal_moves(self, piece):
+        """
+        prompts the piece to give its valid moves
+        If in actuality piece is none returns the empty list.
+        Useful for later deletion of valid but illegal moves
+        """
+        if piece != None:
+            return piece.generate_valid_moves(self)
+        else:
+            return []
 
     def in_bounds(self, row, col):
-        return (((0 <= row < SQUARECOUNT ) and (0 <= col < SQUARECOUNT)))
+        return (0 <= row < SQUARECOUNT) and (0 <= col < SQUARECOUNT)
 
-
-    def load_pieces(self, black_pieces : list[Piece], white_pieces : list[Piece]):
+    def load_pieces(self):
+        """
+        Loads the piece into their pieces array
+        """
+        # clear piece arrays
+        black_pieces = []
+        white_pieces = []
         # generate pawns
         for i in range(SQUARECOUNT):
             black_pawn = Pawn(BLACK, 1, i, "pawn")
@@ -161,15 +191,35 @@ class Board:
         white_bishop1 = Bishop(WHITE, 7, 5, "bishop")
         white_king = King(WHITE, 7, 4, "king")
         white_queen = Queen(WHITE, 7, 3, "queen")
-        black_pieces += [black_rook, black_rook1, black_knight, black_knight1, black_bishop, black_bishop1, black_queen, black_king]
-        white_pieces += [white_rook, white_rook1, white_knight, white_knight1, white_bishop, white_bishop1, white_queen, white_king]
+        black_pieces += [
+            black_rook,
+            black_rook1,
+            black_knight,
+            black_knight1,
+            black_bishop,
+            black_bishop1,
+            black_queen,
+            black_king,
+        ]
+        white_pieces += [
+            white_rook,
+            white_rook1,
+            white_knight,
+            white_knight1,
+            white_bishop,
+            white_bishop1,
+            white_queen,
+            white_king,
+        ]
+        return (black_pieces, white_pieces)
 
-        for black_piece in black_pieces:
+    def set_pieces(self, dark_pieces: list[Piece], light_pieces: list[Piece]):
+        for black_piece in dark_pieces:
             self.set_piece(black_piece)
-        for white_piece in white_pieces:
-           self.set_piece(white_piece)
+        for white_piece in light_pieces:
+            self.set_piece(white_piece)
 
-    def move_piece(self, piece : Piece, new_row : int, new_col : int):
+    def move_piece(self, piece: Piece, new_row: int, new_col: int):
         """
         move_piece(self, piece: Piece, new_row : int, new_col : int):
         moves the piece on the boards data  structure.
@@ -180,21 +230,20 @@ class Board:
         old_row = piece.row
         old_col = piece.col
         # Move piece by updating piece parameters
-        if piece.is_legal_move(new_row, new_col, self):
+        if piece.is_valid_move(new_row, new_col, self):
             (old_row, old_col) = piece.apply_move(new_row, new_col, self)
             self.struct[old_row][old_col] = None
             self.struct[new_row][new_col] = piece
             self.clear_piece(old_row, old_col)
-        
 
-    def grid_to_rel_pos(self, row : int, col : int) -> tuple:
+    def grid_to_rel_pos(self, row: int, col: int) -> tuple:
         """
         grid_to_rel_pos(self, row : int, col : int) -> tuple:
         converts the grid coordinates into a position relative to the board
         returns : a tuple (x,y)
         """
         return (col * SQUARESIZE, row * SQUARESIZE)
-    
+
     def draw_pieces(self):
         """
         Draws all pieces located on the board
@@ -202,20 +251,19 @@ class Board:
         for row in range(self.square_count):
             for col in range(self.square_count):
                 square = self.struct[row][col]
-                #if square == EMPTY:
-                #    self.clear_piece(row, col)
-                #else:
-                #    self.draw_piece(square, row, col)
                 if square != EMPTY:
                     self.draw_piece(square, row, col)
 
-    def draw_piece(self, piece : Piece, row : int, col : int):
+    def draw_piece(self, piece: Piece, row: int, col: int):
         """
         draw_piece(self, piece : Piece, row : int , col : int):
-        Draws the piece onto the board. 
+        Draws the piece onto the board by first coloring the square under it
+        and then drawing the piece over it on the board surface
         returns : None
         """
         pos = self.grid_to_rel_pos(row, col)
+        ## first we want to draw a square
+        self.color_square(row, col)
         self.surface.blit(piece.surface, pos)
 
     def mouse_pos_to_grid(self, pos):
@@ -226,7 +274,7 @@ class Board:
         mouse_y = pos[1]
         if not self.rect.collidepoint(mouse_x, mouse_y):
             return (None, None)
-        
+
         col = int((mouse_x - BOARDPOSX) // SQUARESIZE)
         row = int((mouse_y - BOARDPOSY) // SQUARESIZE)
 
@@ -236,11 +284,8 @@ class Board:
             return (int(row), int(col))
         else:
             return (None, None)
-    
 
-
-
-    def clear_piece(self, row : int, col : int):
+    def clear_piece(self, row: int, col: int):
         """
         clear_piece(self, piece : Piece):
         Clears the piece from the board. "Undrawing" it
@@ -248,24 +293,54 @@ class Board:
         returns : None
         """
         pos = self.grid_to_rel_pos(row, col)
-        self.draw_square(self.surface, row, col)
-        #square = pygame.Surface((SQUARESIZE, SQUARESIZE))
-        #if (row + col) % 2 == 0:
+        color = self.color_dark if (row + col) % 2 == 1 else self.color_light
+        self.color_square(row, col)
+        # square = pygame.Surface((SQUARESIZE, SQUARESIZE))
+        # if (row + col) % 2 == 0:
         #    square.fill(self.color_light)
-        #else:
+        # else:
         #    square.fill(self.color_dark)
-        #self.surface.blit(square, (col * SQUARESIZE, row * SQUARESIZE))
-         
-    
+        # self.surface.blit(square, (col * SQUARESIZE, row * SQUARESIZE))
 
-    def draw_board(self, window : pygame.Surface) -> None:
+    def draw_board(self, window: pygame.Surface) -> None:
         """
         draw_board(self, window : pygame.Surface):
-        Draws the board onto the pygame surface object called window. 
+        Draws the board onto the pygame surface object called window.
         Blits the board onto the window
         returns : None
         """
+
+        self.draw_pieces()
         window.blit(self.surface, (BOARDPOSX, BOARDPOSY))
+        window.blit(self.highlighted_surface, (BOARDPOSX, BOARDPOSY))
+
     def undraw_moves(self, moves):
-        for move in moves:
-            self.draw_square(self.surface, move[0], move[1])
+        self.clear_highlights()
+        # for move in moves:
+        # row = move[0]
+        # col = move[1]
+        # self.color_square(move[0], move[1])
+
+    def set_highlighted_squares(self, moves):
+        self.highlighted_squares = moves
+
+    def clear_highlighted_squares(self):
+        self.highlighted_squares = []
+
+    ### State methods, might move
+
+    def valid_piece_selected(self, mouse_pos):
+        """
+        Checks if a valid piece has been selected
+        """
+        row, col = self.mouse_pos_to_grid(mouse_pos)
+        return (row, col) != (None, None)
+
+    def valid_square_selected(self, mouse_pos):
+        return self.mouse_pos_to_grid(mouse_pos) != (None, None)
+
+    def valid_move_selected(self, mouse_pos, valid_moves):
+        return (
+            self.valid_square_selected(mouse_pos)
+            and self.mouse_pos_to_grid(mouse_pos) in valid_moves
+        )
