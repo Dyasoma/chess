@@ -4,13 +4,15 @@ from pygame.locals import *
 import pygame
 import sys
 class GameState:
-    def __init__(self, board : Board):
+    def __init__(self, board : Board, black_pieces, white_pieces):
         self.mouse_pressed = False
         self.mouse_pos = (None, None)
         self.selected_piece = None 
         self.legal_moves = []
         self.state = SELECTPIECE
         self.board = board
+        self.black_pieces = black_pieces
+        self.white_pieces = white_pieces
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -93,7 +95,3 @@ class GameState:
     
     def set_state(self, state):
         self.state = state
-
-
-
-    

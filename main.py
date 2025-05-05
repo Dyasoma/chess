@@ -33,24 +33,19 @@ def setup():
     return (True, pygame.time.Clock(), window, chessboard, black_pieces, white_pieces)
 
 
-def render(chessboard : Board, WINDOWSURF : pygame.Surface):
-    chessboard.draw_board()  # draw board onto the window
-    chessboard.draw_highlights(GREEN, WINDOWSURF)
-    WINDOWSURF.blit(chessboard.surface, (BOARDPOSX, BOARDPOSY))
-    chessboard.draw_pieces(WINDOWSURF)  # draw all pieces onto the board
-    WINDOWSURF.blit(chessboard.highlighted_surface, (BOARDPOSX, BOARDPOSY))
-
 def main():
     # Setup and Initialization
     game_is_running, clock, WINDOWSURF, chessboard, black_pieces, white_pieces = setup()
-    game_state = GameState(chessboard)
+    game_state = GameState(chessboard, black_pieces, white_pieces)
     while game_is_running:
-
+        if len(black_pieces) == 0 or len(white_pieces) == 0:
+            game_is_running = False
+            break
         game_state.handle_events()
 
         game_state.update_logic()
 
-        render(chessboard, WINDOWSURF)
+        chessboard.render(WINDOWSURF)
         
         clock.tick(FPS)
 
