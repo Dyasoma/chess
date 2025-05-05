@@ -90,9 +90,15 @@ class Board:
             square, (col_index * SQUARESIZE, row_index * SQUARESIZE)
         )
 
-    def draw_highlights(self, color):
+    def draw_highlights(self, color, surface):
+        # clear all highlights
+        self.highlighted_surface.fill((0, 0, 0, 0))
+
+        # now redraw highlights
         for square in self.highlighted_squares:
             self.highlight_square(*square, color)
+
+        surface.blit(self.highlighted_surface, (BOARDPOSX, BOARDPOSY))
 
     def clear_highlights(self):
         self.highlighted_surface.fill((0, 0, 0, 0))
@@ -244,7 +250,7 @@ class Board:
         """
         return (col * SQUARESIZE, row * SQUARESIZE)
 
-    def draw_pieces(self):
+    def draw_pieces(self, surface):
         """
         Draws all pieces located on the board
         """
@@ -252,19 +258,22 @@ class Board:
             for col in range(self.square_count):
                 square = self.struct[row][col]
                 if square != EMPTY:
-                    self.draw_piece(square, row, col)
+                    self.draw_piece(square, row, col, surface)
 
-    def draw_piece(self, piece: Piece, row: int, col: int):
+    def get_abs_pos(self, row, col):
+        return (BOARDPOSX + col * SQUARESIZE, BOARDPOSY + row * SQUARESIZE)
+
+    def draw_piece(self, piece: Piece, row: int, col: int, surface):
         """
         draw_piece(self, piece : Piece, row : int , col : int):
         Draws the piece onto the board by first coloring the square under it
         and then drawing the piece over it on the board surface
         returns : None
         """
-        pos = self.grid_to_rel_pos(row, col)
+        pos = self.get_abs_pos(row, col)
         ## first we want to draw a square
-        self.color_square(row, col)
-        self.surface.blit(piece.surface, pos)
+        # self.color_square(row, col)
+        surface.blit(piece.surface, (pos))
 
     def mouse_pos_to_grid(self, pos):
         """
@@ -302,17 +311,10 @@ class Board:
         #    square.fill(self.color_dark)
         # self.surface.blit(square, (col * SQUARESIZE, row * SQUARESIZE))
 
-    def draw_board(self, window: pygame.Surface) -> None:
-        """
-        draw_board(self, window : pygame.Surface):
-        Draws the board onto the pygame surface object called window.
-        Blits the board onto the window
-        returns : None
-        """
-
-        self.draw_pieces()
-        window.blit(self.surface, (BOARDPOSX, BOARDPOSY))
-        window.blit(self.highlighted_surface, (BOARDPOSX, BOARDPOSY))
+    def draw_board(self):
+        for row in range(SQUARECOUNT):
+            for col in range(SQUARECOUNT):
+                self.color_square(row, col)
 
     def undraw_moves(self, moves):
         self.clear_highlights()
