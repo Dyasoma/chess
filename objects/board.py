@@ -154,60 +154,7 @@ class Board:
     def in_bounds(self, row, col):
         return (0 <= row < SQUARECOUNT) and (0 <= col < SQUARECOUNT)
 
-    def load_pieces(self):
-        """
-        Loads the piece into their pieces array
-        """
-        # clear piece arrays
-        black_pieces = []
-        white_pieces = []
-        # generate pawns
-        for i in range(SQUARECOUNT):
-            black_pawn = Pawn(BLACK, 1, i, "pawn")
-            white_pawn = Pawn(WHITE, 6, i, "pawn")
-            black_pieces.append(black_pawn)
-            white_pieces.append(white_pawn)
 
-        # generate black pieces
-        black_rook = Rook(BLACK, 0, 0, "rook")
-        black_rook1 = Rook(BLACK, 0, 7, "rook")
-        black_knight = Knight(BLACK, 0, 1, "knight")
-        black_knight1 = Knight(BLACK, 0, 6, "knight")
-        black_bishop = Bishop(BLACK, 0, 2, "bishop")
-        black_bishop1 = Bishop(BLACK, 0, 5, "bishop")
-        black_king = King(BLACK, 0, 4, "king")
-        black_queen = Queen(BLACK, 0, 3, "queen")
-
-        # generate white pieces
-        white_rook = Rook(WHITE, 7, 0, "rook")
-        white_rook1 = Rook(WHITE, 7, 7, "rook")
-        white_knight = Knight(WHITE, 7, 1, "knight")
-        white_knight1 = Knight(WHITE, 7, 6, "knight")
-        white_bishop = Bishop(WHITE, 7, 2, "bishop")
-        white_bishop1 = Bishop(WHITE, 7, 5, "bishop")
-        white_king = King(WHITE, 7, 4, "king")
-        white_queen = Queen(WHITE, 7, 3, "queen")
-        black_pieces += [
-            black_rook,
-            black_rook1,
-            black_knight,
-            black_knight1,
-            black_bishop,
-            black_bishop1,
-            black_queen,
-            black_king,
-        ]
-        white_pieces += [
-            white_rook,
-            white_rook1,
-            white_knight,
-            white_knight1,
-            white_bishop,
-            white_bishop1,
-            white_queen,
-            white_king,
-        ]
-        return (black_pieces, white_pieces)
 
     def set_pieces(self, dark_pieces: list[Piece], light_pieces: list[Piece]):
         for black_piece in dark_pieces:
@@ -221,7 +168,7 @@ class Board:
         moves the piece on the boards data  structure.
         updating the pieces data, and the board data.
         Does not draw pieces, simply updates pieces, and board logic.
-        returns : None
+        returns : a captured piece if the piece is captured else it returns none
         """
         old_row = piece.row
         old_col = piece.col
@@ -229,8 +176,10 @@ class Board:
         if piece.is_valid_move(new_row, new_col, self):
             (old_row, old_col) = piece.apply_move(new_row, new_col, self)
             self.struct[old_row][old_col] = None
+            captured_piece = self.struct[new_row][new_col]
             self.struct[new_row][new_col] = piece
             self.clear_piece(old_row, old_col)
+            return captured_piece
 
     def grid_to_rel_pos(self, row: int, col: int) -> tuple:
         """
@@ -319,13 +268,6 @@ class Board:
 
 
     ### State methods, might move
-
-    def valid_piece_selected(self, mouse_pos):
-        """
-        Checks if a valid piece has been selected
-        """
-        row, col = self.mouse_pos_to_grid(mouse_pos)
-        return (row, col) != (None, None)
 
     def valid_square_selected(self, mouse_pos):
         return self.mouse_pos_to_grid(mouse_pos) != (None, None)

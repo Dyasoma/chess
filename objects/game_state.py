@@ -4,15 +4,17 @@ from pygame.locals import *
 import pygame
 import sys
 class GameState:
-    def __init__(self, board : Board, black_pieces, white_pieces):
+    def __init__(self, board : Board, black_team, white_team):
         self.mouse_pressed = False
         self.mouse_pos = (None, None)
         self.selected_piece = None 
+        self.captured_piece = None
         self.legal_moves = []
         self.state = SELECTPIECE
         self.board = board
-        self.black_pieces = black_pieces
-        self.white_pieces = white_pieces
+        self.black_team = black_team
+        self.white_team = white_team
+        self.current_player = self.white_team
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -27,27 +29,33 @@ class GameState:
 
     def handle_piece_selection(self):
         # state conditionals
-        if self.mouse_pressed and self.board.valid_piece_selected(
+        if self.mouse_pressed and self.board.valid_square_selected(
             self.mouse_pos
         ):  # mouse is pressed
             # update state variable
             row, col = self.board.mouse_pos_to_grid(self.mouse_pos)
-            self.set_selected_piece(self.board.get_piece(row, col)) 
-            self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
-            self.board.set_highlighted_squares(self.legal_moves)
-            self.set_state(SELECTMOVE)  # go to move selection
+            self.set_selected_piece(self.board.get_piece(row, col))
+            ## we now have a piece, check that it is valid for the given player
+            if self.selected_piece and self.selected_piece.color == self.current_player.team_color:
+                self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
+                self.board.set_highlighted_squares(self.legal_moves)
+                self.set_state(SELECTMOVE)  # go to move selection
             # sanitize
             self.set_mouse_pressed(False)
     
     def handle_move_selection(self):
     # state conditionals
         if self.legal_moves:
-            if self.mouse_pressed and self.board.valid_move_selected(self.mouse_pos, self.legal_moves):
-                # update state variables
-                row, col = self.board.mouse_pos_to_grid(self.mouse_pos)
-                # move the piece
-                self.board.move_piece(self.selected_piece, row, col)
-                self.reset_selection()
+            if self.mouse_pressed:
+                if self.board.valid_move_selected(self.mouse_pos, self.legal_moves):
+                    # update state variables
+                    row, col = self.board.mouse_pos_to_grid(self.mouse_pos)
+                    # move the piece
+                    self.captured_piece = self.board.move_piece(self.selected_piece, row, col)
+                    self.reset_selection()
+                    self.update_current_player(self.captured_piece)
+                else:
+                    self.reset_selection()
         else:
             self.reset_selection()
 
@@ -65,6 +73,17 @@ class GameState:
         self.set_mouse_pressed(False)
         self.board.clear_highlighted_squares()
 
+    def update_current_player(self, captured_piece):
+        if self.current_player == self.black_team:
+            if captured_piece:
+                self.white_team.active_pieces.remove(captured_piece)
+                self.white_team.captured_pieces.append(captured_piece)
+            self.current_player = self.white_team
+        elif self.current_player == self.white_team:
+            if captured_piece:
+                self.black_team.active_pieces.remove(captured_piece)
+                self.black_team.captured_pieces.append(captured_piece)
+            self.current_player = self.black_team
 
     def get_mouse_pressed(self):
         return self.mouse_pressed  
@@ -95,3 +114,9 @@ class GameState:
     
     def set_state(self, state):
         self.state = state
+
+    def print_current_player(self):
+        if self.current_player == self.black_team:
+            return 'Black Player'
+        elif self.current_player == self.white_team:
+            return 'White Player'
