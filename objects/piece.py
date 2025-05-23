@@ -3,12 +3,12 @@ from .constants import WHITE, BLACK, SQUARESIZE, EMPTY, BOARDPOSX, BOARDPOSY
 
 
 class Piece:
-    def __init__(self, color: pygame.Color, row: int, col: int, piece_type: str):
+    def __init__(self, color: pygame.Color, row: int, col: int, type: str):
         """
         Class used to represent a chess piece.
         """
         self.size = SQUARESIZE
-        self.piece_type = piece_type
+        self.type = type
         self.row = row
         self.col = col
         self.color = color
@@ -29,9 +29,9 @@ class Piece:
         returns : pygame surface object for the image of the piece
         """
         if self.color == WHITE:
-            surface = pygame.image.load(f"./Assets/{self.piece_type}_white.png")
+            surface = pygame.image.load(f"./Assets/{self.type}_white.png")
         else:
-            surface = pygame.image.load(f"./Assets/{self.piece_type}_black.png")
+            surface = pygame.image.load(f"./Assets/{self.type}_black.png")
         return pygame.transform.smoothscale(surface, (self.size, self.size))
 
     def __create_piece_rect(self) -> pygame.Rect:
@@ -89,8 +89,8 @@ class Piece:
 
 
 class Pawn(Piece):
-    def __init__(self, color: pygame.Color, row: int, col: int, piece_type: str):
-        super().__init__(color, row, col, piece_type)
+    def __init__(self, color: pygame.Color, row: int, col: int, type: str):
+        super().__init__(color, row, col, type)
         self.has_moved = False
 
     def generate_valid_moves(self, board):
@@ -131,8 +131,8 @@ class Pawn(Piece):
 
 
 class Knight(Piece):
-    def __init__(self, color: pygame.Color, row: int, col: int, piece_type: str):
-        super().__init__(color, row, col, piece_type)
+    def __init__(self, color: pygame.Color, row: int, col: int, type: str):
+        super().__init__(color, row, col, type)
 
     def generate_valid_moves(self, board):
         ## generates a list of valid moves
@@ -162,8 +162,8 @@ class Knight(Piece):
 
 
 class Bishop(Piece):
-    def __init__(self, color: pygame.Color, row: int, col: int, piece_type: str):
-        super().__init__(color, row, col, piece_type)
+    def __init__(self, color: pygame.Color, row: int, col: int, type: str):
+        super().__init__(color, row, col, type)
 
     def generate_valid_moves(self, board):
         diagonals = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
@@ -171,8 +171,8 @@ class Bishop(Piece):
 
 
 class Rook(Piece):
-    def __init__(self, color: pygame.Color, row: int, col: int, piece_type: str):
-        super().__init__(color, row, col, piece_type)
+    def __init__(self, color: pygame.Color, row: int, col: int, type: str):
+        super().__init__(color, row, col, type)
         self.has_moved = False
 
     def generate_valid_moves(self, board):
@@ -185,8 +185,8 @@ class Rook(Piece):
 
 
 class Queen(Piece):
-    def __init__(self, color: pygame.Color, row: int, col: int, piece_type: str):
-        super().__init__(color, row, col, piece_type)
+    def __init__(self, color: pygame.Color, row: int, col: int, type: str):
+        super().__init__(color, row, col, type)
 
     def generate_valid_moves(self, board):
         cardinals = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -195,8 +195,8 @@ class Queen(Piece):
 
 
 class King(Piece):
-    def __init__(self, color: pygame.Color, row: int, col: int, piece_type: str):
-        super().__init__(color, row, col, piece_type)
+    def __init__(self, color: pygame.Color, row: int, col: int, type: str):
+        super().__init__(color, row, col, type)
         self.has_moved = False
 
     def generate_valid_moves(self, board):

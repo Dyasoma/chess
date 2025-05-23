@@ -72,7 +72,6 @@ class Board:
                 color = self.color_dark if (row + col) % 2 == 1 else self.color_light
                 self.color_square(row, col)
 
-
     def highlight_square(self, row_index, col_index, color, alpha=128):
         square = pygame.Surface((SQUARESIZE, SQUARESIZE), flags=pygame.SRCALPHA)
         square.fill((*color, alpha))
@@ -80,15 +79,14 @@ class Board:
             square, (col_index * SQUARESIZE, row_index * SQUARESIZE)
         )
 
-    def draw_highlights(self, color, surface):
+    def draw_highlights(self, color, window):
         # clear all highlights
         self.highlighted_surface.fill((0, 0, 0, 0))
-
         # now redraw highlights
         for square in self.highlighted_squares:
             self.highlight_square(*square, color)
 
-        surface.blit(self.highlighted_surface, (BOARDPOSX, BOARDPOSY))
+        window.blit(self.highlighted_surface, (BOARDPOSX, BOARDPOSY))
 
     def clear_highlights(self):
         self.highlighted_surface.fill((0, 0, 0, 0))
@@ -113,12 +111,7 @@ class Board:
         else:
             square.fill(color)
         self.surface.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
-
-    def draw_legal_moves(self, moves):
-        if not moves:
-            return
-        for move in moves:
-            self.highlight_square(move[0], move[1], GREEN)
+            
 
     def set_piece(self, piece: Piece):
         """
@@ -154,13 +147,25 @@ class Board:
     def in_bounds(self, row, col):
         return (0 <= row < SQUARECOUNT) and (0 <= col < SQUARECOUNT)
 
-
-
     def set_pieces(self, dark_pieces: list[Piece], light_pieces: list[Piece]):
         for black_piece in dark_pieces:
             self.set_piece(black_piece)
         for white_piece in light_pieces:
             self.set_piece(white_piece)
+
+    def upgrade_piece(self, initial_piece : Piece, new_type : str):
+        new_piece = None
+        if new_type == "rook":
+            new_piece = Rook(initial_piece.color, initial_piece.row, initial_piece.col, new_type)
+        elif new_type == "bishop":
+            new_piece = Bishop(initial_piece.color, initial_piece.row, initial_piece.col, new_type)
+        elif new_type == "knight":
+            new_piece = Knight(initial_piece.color, initial_piece.row, initial_piece.col, new_type)
+        elif new_type == "queen":
+            new_piece = Queen(initial_piece.color, initial_piece.row, initial_piece.col, new_type)
+        self.struct[new_piece.row][new_piece.col] = new_piece
+        return new_piece
+
 
     def move_piece(self, piece: Piece, new_row: int, new_col: int):
         """
@@ -177,6 +182,7 @@ class Board:
             (old_row, old_col) = piece.apply_move(new_row, new_col, self)
             self.struct[old_row][old_col] = None
             captured_piece = self.struct[new_row][new_col]
+            ## check if we can promate a pawn
             self.struct[new_row][new_col] = piece
             self.clear_piece(old_row, old_col)
             return captured_piece
@@ -243,12 +249,15 @@ class Board:
         color = self.color_dark if (row + col) % 2 == 1 else self.color_light
         self.color_square(row, col)
 
-
-    def draw_board(self):
+    def draw_board(self, window):
         for row in range(SQUARECOUNT):
             for col in range(SQUARECOUNT):
                 self.color_square(row, col)
+        window.blit(self.surface, (BOARDPOSX, BOARDPOSY))
 
+
+    def draw_menu(self, promo, window):
+        window.blit(promo.surface, (promo.x + BOARDPOSX, promo.y + BOARDPOSY))
     def undraw_moves(self, moves):
         self.clear_highlights()
 
@@ -257,13 +266,6 @@ class Board:
 
     def clear_highlighted_squares(self):
         self.highlighted_squares = []
-
-    def render(self, WINDOWSURF : pygame.Surface):
-        self.draw_board()  # draw board onto the window
-        WINDOWSURF.blit(self.surface, (BOARDPOSX, BOARDPOSY))
-        self.draw_highlights(GREEN, WINDOWSURF)
-        self.draw_pieces(WINDOWSURF)  # draw all pieces onto the board
-        WINDOWSURF.blit(self.highlighted_surface, (BOARDPOSX, BOARDPOSY))
 
 
 
