@@ -10,7 +10,8 @@ from objects.constants import (
     WHITEPLAYER,
     BLACKPLAYER,
     BLACK,
-    WHITE
+    WHITE,
+    GREY
 )
 
 
@@ -18,17 +19,18 @@ from objects.board import Board
 from objects.game_state import GameState
 from objects.team import Team
 
-FPS = 10
+FPS = 60
 
 
 def setup():
     pygame.init()
     window = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     pygame.display.set_caption("Chess")  # window title
-    window.fill("Grey")
+    window.fill(GREY)
     chessboard = Board(
         BOARDSIDELENGTH, BOARDSIDELENGTH, SQUARECOUNT, DARKCOLOR, LIGHTCOLOR
     )  # create a board
+    ## CHANGED FOR TESTING.
     black_player = Team(BLACKPLAYER, BLACK) 
     white_player = Team(WHITEPLAYER, WHITE)
     chessboard.set_pieces(black_player.active_pieces, white_player.active_pieces)
@@ -48,7 +50,7 @@ def main():
 
         game_state.update_logic()
 
-        chessboard.render(WINDOWSURF)
+        game_state.render(WINDOWSURF)
         delta_report += 1
         clock.tick(FPS)
         if delta_report == 50:
