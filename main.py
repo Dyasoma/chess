@@ -3,7 +3,7 @@ from random import randint
 from objects.constants import (
     WINDOWWIDTH,
     WINDOWHEIGHT,
-    BOARDSIDELENGTH,
+    SQUARESIZE,
     SQUARECOUNT,
     DARKCOLOR,
     LIGHTCOLOR, 
@@ -11,7 +11,7 @@ from objects.constants import (
     BLACKPLAYER,
     BLACK,
     WHITE,
-    GREY
+    GREY,
 )
 
 
@@ -28,9 +28,10 @@ def setup():
     pygame.display.set_caption("Chess")  # window title
     window.fill(GREY)
     chessboard = Board(
-        BOARDSIDELENGTH, BOARDSIDELENGTH, SQUARECOUNT, DARKCOLOR, LIGHTCOLOR
+        SQUARESIZE, SQUARECOUNT, DARKCOLOR, LIGHTCOLOR, window
     )  # create a board
-    ## CHANGED FOR TESTING.
+    chessboard.draw_board()
+    pygame.display.update()
     black_player = Team(BLACKPLAYER, BLACK) 
     white_player = Team(WHITEPLAYER, WHITE)
     chessboard.set_pieces(black_player.active_pieces, white_player.active_pieces)
@@ -50,7 +51,7 @@ def main():
 
         game_state.update_logic()
 
-        game_state.render(WINDOWSURF)
+        game_state.render()
         delta_report += 1
         clock.tick(FPS)
         if delta_report == 50:

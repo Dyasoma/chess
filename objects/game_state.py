@@ -47,7 +47,7 @@ class GameState:
         ):  # mouse is pressed
             # update state variable
             row, col = self.board.mouse_pos_to_grid(self.mouse_pos)
-            self.set_selected_piece(self.board.get_piece(row, col))
+            self.set_selected_piece(self.board.get_square_contents(row, col))
             ## we now have a piece, check that it is valid for the given player
             if (
                 self.selected_piece
@@ -159,12 +159,12 @@ class GameState:
                 self.black_team.captured_pieces.append(captured_piece)
             self.current_player = self.black_team
 
-    def render(self, WINDOWSURF: pygame.Surface):
-        self.board.draw_board(WINDOWSURF)  # draw board onto the window
-        self.board.draw_highlights(GREEN, WINDOWSURF)
-        self.board.draw_pieces(WINDOWSURF)  # draw all pieces onto the board
+    def render(self):
+        self.board.draw_board()  # draw board onto the window
+        self.board.draw_highlights(GREEN)
+        self.board.draw_pieces()  # draw all pieces onto the board
         if self.promotion_menu:
-            self.board.draw_menu(self.promotion_menu, WINDOWSURF)
+            self.board.draw_menu(self.promotion_menu)
         
 
     def get_mouse_pressed(self):

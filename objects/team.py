@@ -1,7 +1,5 @@
 from .constants import SQUARECOUNT, BLACK, WHITE, BLACKPLAYER, WHITEPLAYER
 from .piece import Pawn, Rook, Bishop, Knight, King, Queen
-import pygame
-
 
 class Team:
     def __init__(self, team_num, color):

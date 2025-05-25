@@ -1,18 +1,26 @@
 import pygame
-from .constants import WHITE, BLACK, SQUARESIZE, EMPTY, BOARDPOSX, BOARDPOSY
+from .constants import (
+    WHITE,
+    SQUARESIZE,
+    BOARDPOSX,
+    BOARDPOSY,
+    DIAGONALS,
+    CARDINALS,
+    KNIGHT_OFFSET,
+)
 
 
 class Piece:
     def __init__(self, color: pygame.Color, row: int, col: int, type: str):
         """
-        Class used to represent a chess piece.
+        Base class used to represent a chess piece.
         """
         self.size = SQUARESIZE
         self.type = type
         self.row = row
         self.col = col
         self.color = color
-        self.surface = self.__create_piece_surface()
+        self.surface = self._create_piece_surface()
         self.rect = pygame.Rect(
             BOARDPOSX + SQUARESIZE * col,
             BOARDPOSY + SQUARESIZE * row,
@@ -20,13 +28,15 @@ class Piece:
             SQUARESIZE,
         )
 
-    def __create_piece_surface(self) -> pygame.Surface:
+    def _create_piece_surface(self) -> pygame.Surface:
         """
-        __create_piece_surface(self) -> pygame.Surface:
-        Creates the surface instance attribute for the given piece
-        First loading an image depending on the piece type
-        Then scales the image
-        returns : pygame surface object for the image of the piece
+        Loads and scales the image of this piece, returning it as a pygame.Surface
+
+        the specific image is selected based on the pieces attributes self.type and self.color,
+        loaded from the Assets directory, and scaled by the pieces self.size attribute
+
+        Returns:
+            pygame.Surface object
         """
         if self.color == WHITE:
             surface = pygame.image.load(f"./Assets/{self.type}_white.png")
@@ -34,54 +44,89 @@ class Piece:
             surface = pygame.image.load(f"./Assets/{self.type}_black.png")
         return pygame.transform.smoothscale(surface, (self.size, self.size))
 
-    def __create_piece_rect(self) -> pygame.Rect:
-        """
-        __create_piece_rect(self) -> pygame.Rect:
-        creates a pygame rect object for the instance attribute rect
-        returns : a pygame rect object
-        """
-
-    def set_row_col(self, row, col):
-        """
-        set(self, init_col, init_row):
-        sets the pieces row and column elements.
-        """
-        self.row = row
-        self.col = col
+    def generate_valid_moves(self, board):
+        # exists purely to be over written by subclasses
+        raise NotImplementedError
 
     def is_valid_move(self, new_row, new_col, board):
         return (new_row, new_col) in self.generate_valid_moves(board)
 
-    def apply_move(self, new_row, new_col, board):
-        # first update piece parameters
+    def is_ally(self, other) -> bool:
+        """
+        Checks if the other piece is of the same team. i.e. is an ally
+        Returns:
+            Bool
+        """
+        assert isinstance(other, Piece)
+        return self.color == other.color
+
+    def is_enemy(self, other) -> bool:
+        """
+        Checks if the other piece is of a different team. i.e. is an enemy
+        Returns:
+            Bool
+        """
+        assert isinstance(other, Piece)
+        return self.color != other.color
+
+    def apply_move(self, new_row, new_col) -> tuple[int, int]:
+        """
+        Updates the piece's row and col attributes.
+        Args:
+            2 ints referring to the new row and column a piece will take
+        Returns:
+            a tuple containing the pieces old row and column.
+        """
+        # assumes the board has validated the movement
+        assert isinstance(new_row, int) and isinstance(new_col, int)
         old_row = self.row
         old_col = self.col
         self.row = new_row
         self.col = new_col
         return (old_row, old_col)
 
-    def generate_valid_moves(self, board):
-        # exists purely to be over written by subclasses
-        raise NotImplementedError
 
-    def get_sliding_moves(self, board, directions):
+class SlidingPiece(Piece):
+    """
+    Represents pieces that "slide" i.e. Queens, Rooks, and Bishops.
+    Exists primarily so that the method get_sliding_moves is not accessible by other piece
+    sub-classes.
+    """
+
+    def __init__(self, color: pygame.Color, row: int, col: int, type: str):
+        super().__init__(color, row, col, type)
+
+    def get_sliding_moves(
+        self, board, directions: list[tuple[int, int]]
+    ) -> list[tuple[int, int]]:
+        """
+        Generates valid sliding moves for the following pieces Bishop, Rook, Queen.
+
+        Slides in the direction specified by directions argument until either blocked by an ally or blocked by an enemy, if blocked
+        by an enemy adds that final square as a valid move
+
+        Args:
+            board is a Board Object directions
+            list[tuple[int, int]: directions relative to the original position of the piece.
+
+        Returns:
+            list[tuple[int, int]] : A list of valid (row, col) moves.
+        """
         valid_moves = []
-        new_row = self.row
-        new_col = self.col
         for dr, dc in directions:
             new_row = self.row + dr
             new_col = self.col + dc
             while board.in_bounds(new_row, new_col):
-                # now validate
-                found_piece = board.get_piece(new_row, new_col)
-                if not found_piece:  # no piece, add move
+                piece = board.get_square_contents(new_row, new_col)
+                if not piece:  # no piece, add move
                     valid_moves.append((new_row, new_col))
-                elif (
-                    found_piece.color != self.color
-                ):  # found a piece check if ally or enemy
-                    valid_moves.append((new_row, new_col))
+                elif self.is_enemy(piece):
+                    valid_moves.append(
+                        (new_row, new_col)
+                    )  # enemy, add, then stop sliding
                     break
                 else:
+                    # ally, stop sliding
                     break
                 new_row += dr
                 new_col += dc
@@ -93,130 +138,135 @@ class Pawn(Piece):
         super().__init__(color, row, col, type)
         self.has_moved = False
 
-    def generate_valid_moves(self, board):
-        ## generates a list of valid moves
+    def generate_valid_moves(self, board) -> list[tuple[int, int]]:
+        """
+        Generates a list of valid pawn moves
+
+        Includes :
+            Single and double jumps assuming the path is empty and piece has not moved for the latter
+            Diagonal captures assuming there is an enemy piece
+
+        Args : board a Board Object
+
+        Returns : list[tuple[int, int]]:  Valid moves for a pawn
+        """
         valid_moves = []
-        ## generate valid 1 and 2 motion moves.
         dv = -1 if self.color == WHITE else 1  # vertical direction
         one_forward = self.row + dv
         two_forward = self.row + (dv * 2)
 
-        ## single jump moves
-        if board.is_empty(one_forward, self.col):
+        # single jump moves
+        if board.is_empty(one_forward, self.col) and board.in_bounds(
+            one_forward, self.col
+        ):
             valid_moves.append((one_forward, self.col))
 
-            ## double jump moves
-            if not self.has_moved:
-                if board.is_empty(two_forward, self.col):
-                    valid_moves.append((two_forward, self.col))
+            # double jump moves (check only if there is a valid single move)
+            if (
+                not self.has_moved
+                and board.is_empty(two_forward, self.col)
+                and board.in_bounds(two_forward, self.col)
+            ):
+                valid_moves.append((two_forward, self.col))
 
-        ## generate diagonal taking moves
+        # Diagonals
         for dh in [-1, 1]:
-            if not board.in_bounds(one_forward, self.col + dh):
-                continue
-            # we are now in bound of square
-            if board.is_empty(one_forward, self.col + dh):
-                continue
-            # new position now has a possible piece to take
-            takeable_piece = board.get_piece(one_forward, self.col + dh)
-            if takeable_piece and takeable_piece.color != self.color:
-                # new position has enemy piece, add diagonal
-                valid_moves.append((one_forward, self.col + dh))
-
+            new_col = self.col + dh
+            if board.in_bounds(one_forward, new_col) and board.is_empty(
+                one_forward, new_col
+            ):
+                piece = board.get_square_contents(one_forward, new_col)
+                if piece and self.is_enemy(piece):
+                    valid_moves.append((one_forward, new_col))
         return valid_moves
-
-    def apply_move(self, new_row, new_col, board):
-        self.has_moved = True
-        return super().apply_move(new_row, new_col, board)
 
 
 class Knight(Piece):
     def __init__(self, color: pygame.Color, row: int, col: int, type: str):
         super().__init__(color, row, col, type)
 
-    def generate_valid_moves(self, board):
-        ## generates a list of valid moves
+    def generate_valid_moves(self, board) -> list[tuple[int, int]]:
+        """
+        Generates a list of valid knight moves
+
+        Each move is a row column tuple representing a square that a knight can move to, assuming that the square is
+        empty or occupied by an enemy piece.
+
+        Args : board : a Board Object
+
+        Returns : list[tuple[int, int]]:  Valid moves for a knight
+        """
         valid_moves = []
-        delta_array = [2, 1, -2, -1]
-        ## check the delta
-        ## completes a pairwise generation of deltas for the row and columns
-        ## skips values where the deltas are equal, as knights move in a l direction
-        ## this implies deltas are at least different in magnitude (1, 2) or are different in magnitude and sign (2, -1)
-        for i in delta_array:
-            for j in delta_array:
-                if (
-                    i == j
-                ):  # same delta, 1 and 1 would be equivalent to a knight moving down 1 and right 1, which isn't correct
-                    continue
-                if (
-                    i == -j
-                ):  # -1 and 1 shouldn't be evaluated as a knight cannot move up 1 and right 1,
-                    continue
-                new_row = self.row + i
-                new_col = self.col + j
-                if board.in_bounds(new_row, new_col):  # actually on the board
-                    found_piece = board.get_piece(new_row, new_col)
-                    if not found_piece or found_piece.color != self.color:
-                        valid_moves.append((new_row, new_col))
+        for dr, dc in KNIGHT_OFFSET:
+            new_row, new_col = self.row + dr, self.col + dc
+            if board.in_bounds(new_row, new_col):  # check move is actually on the board
+                piece = board.get_square_contents(
+                    new_row, new_col
+                )  # check if there is a piece to be captured
+                if not piece or self.is_enemy(piece):
+                    valid_moves.append((new_row, new_col))
         return valid_moves
 
 
-class Bishop(Piece):
+class Bishop(SlidingPiece):
     def __init__(self, color: pygame.Color, row: int, col: int, type: str):
         super().__init__(color, row, col, type)
 
-    def generate_valid_moves(self, board):
-        diagonals = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-        return self.get_sliding_moves(board, diagonals)
+    def generate_valid_moves(self, board) -> list[tuple[int, int]]:
+        """
+        Generates the diagonal sliding moves via the get_sliding_moves method.
+        """
+        return self.get_sliding_moves(board, DIAGONALS)
 
 
-class Rook(Piece):
+class Rook(SlidingPiece):
     def __init__(self, color: pygame.Color, row: int, col: int, type: str):
         super().__init__(color, row, col, type)
         self.has_moved = False
 
-    def generate_valid_moves(self, board):
-        cardinals = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        return self.get_sliding_moves(board, cardinals)
-
-    def apply_move(self, new_row, new_col, board):
-        self.has_moved = True
-        return super().apply_move(new_row, new_col, board)
+    def generate_valid_moves(self, board) -> list[tuple[int, int]]:
+        """
+        Generates the cardinal sliding moves via the get_sliding_moves method.
+        """
+        return self.get_sliding_moves(board, CARDINALS)
 
 
-class Queen(Piece):
+class Queen(SlidingPiece):
     def __init__(self, color: pygame.Color, row: int, col: int, type: str):
         super().__init__(color, row, col, type)
 
-    def generate_valid_moves(self, board):
-        cardinals = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        diagonals = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-        return self.get_sliding_moves(board, cardinals + diagonals)
+    def generate_valid_moves(self, board) -> list[tuple[int, int]]:
+        """
+        Generates the Queens movements combinging digonal and cardinal sliding moves.
+        """
+        return self.get_sliding_moves(board, CARDINALS + DIAGONALS)
 
 
 class King(Piece):
+
     def __init__(self, color: pygame.Color, row: int, col: int, type: str):
         super().__init__(color, row, col, type)
         self.has_moved = False
 
     def generate_valid_moves(self, board):
+        """
+        Generates the valid moves for the King piece
+
+        Each move is a (row, col) tuple assuming the move is empty or is occupied by an enemy piece.
+
+        Args : board is a Board object
+
+        Returns :list[tuple[int, int]] : A list of moves.
+
+        """
         valid_moves = []
-        cardinals = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        diagonals = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-        directions = cardinals + diagonals
+        directions = CARDINALS + DIAGONALS
         for dr, dc in directions:
             new_row = self.row + dr
             new_col = self.col + dc
             if board.in_bounds(new_row, new_col):
                 # now validate
-                found_piece = board.get_piece(new_row, new_col)
-                if (
-                    not found_piece or found_piece.color != self.color
-                ):  # no piece, add move
+                piece = board.get_square_contents(new_row, new_col)
+                if not piece or self.is_enemy(piece):
                     valid_moves.append((new_row, new_col))
-
         return valid_moves
-
-    def apply_move(self, new_row, new_col, board):
-        self.has_moved = True
-        return super().apply_move(new_row, new_col, board)
