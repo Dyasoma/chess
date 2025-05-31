@@ -17,6 +17,7 @@ PIECE_ROOK = "rook"
 PIECE_BISHOP = "bishop"
 PIECE_KNIGHT = "knight"
 PIECE_QUEEN = "queen"
+PIECE_PAWN = "pawn"
 DARKCOLOR = (102, 0, 0)
 LIGHTCOLOR = (185, 122, 87)
 WHITE = (255, 255, 255)

@@ -47,13 +47,23 @@ class Piece:
     def generate_valid_moves(self, board):
         # exists purely to be over written by subclasses
         raise NotImplementedError
+    
+    def update_after_move(self):
+        """
+        Exists as a method to update certain pieeces after a successful move
+        """
+        pass
 
-    def is_valid_move(self, new_row, new_col, board):
+    def is_valid_move(self, new_row : int , new_col : int, board):
+        """
+        Checks if a move is valid, return True. Otherwise False
+        """
         return (new_row, new_col) in self.generate_valid_moves(board)
 
     def is_ally(self, other) -> bool:
         """
         Checks if the other piece is of the same team. i.e. is an ally
+
         Returns:
             Bool
         """
@@ -172,13 +182,22 @@ class Pawn(Piece):
         # Diagonals
         for dh in [-1, 1]:
             new_col = self.col + dh
-            if board.in_bounds(one_forward, new_col) and board.is_empty(
+            if board.in_bounds(one_forward, new_col) and not board.is_empty(
                 one_forward, new_col
             ):
                 piece = board.get_square_contents(one_forward, new_col)
                 if piece and self.is_enemy(piece):
                     valid_moves.append((one_forward, new_col))
         return valid_moves
+
+    def update_after_move(self):
+        """
+        On successful movement, updates the self.has_moved attribute to prevent "double-jumps". 
+        """
+        if not self.has_moved:
+            self.has_moved = True
+        
+
 
 
 class Knight(Piece):

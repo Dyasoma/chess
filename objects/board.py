@@ -5,6 +5,7 @@ from .constants import (
     ALPHA_FLAG,
     SQUARESIZE,
     SQUARECOUNT,
+    PIECE_PAWN,
     PIECE_ROOK,
     PIECE_BISHOP,
     PIECE_KNIGHT,
@@ -15,7 +16,7 @@ from .piece import Piece, Pawn, Knight, Bishop, Rook, Queen, King
 
 class Board:
     """
-    Represents a NxN checkerboard 
+    Represents a NxN checkerboard
 
     Args:
         square_size (int): The pixel size of each individual square
@@ -25,20 +26,21 @@ class Board:
         window (pygame.Surface): The game window's surface
 
     Attributes:
-        struct (list[list[Piece | None]]): 2D grid storing pieces or None 
+        struct (list[list[Piece | None]]): 2D grid storing pieces or None
         surface (pygame.Surface): Base surface / Image of the board
         highlighted_surface (pygame.Surface): Transparent overlay surface for highlighting
         rect (pygame.Rect): Position and size of the board relative to the window
-        highlighted_squares list[tuple[int, int]]: Squares which are to be highlighted stored as a list of (row,col) tuples. 
+        highlighted_squares list[tuple[int, int]]: Squares which are to be highlighted stored as a list of (row,col) tuples.
 
     """
+
     def __init__(
         self,
         square_size: int,
         square_count: int,
         color_dark: pygame.Color,
         color_light: pygame.Color,
-        window : pygame.Surface
+        window: pygame.Surface,
     ):
 
         self.square_size = square_size
@@ -46,14 +48,18 @@ class Board:
         self.color_dark: pygame.Color = color_dark
         self.square_count: int = square_count
         self.struct: list[list[Piece | None]] = self._create_board_struct()
-        self.window : pygame.Surface = window
-        self.surface: pygame.Surface = pygame.Surface((square_count * square_size, square_count * square_size))
-        self.highlighted_surface: pygame.Surface = pygame.Surface(
-            (square_size, square_size), flags=ALPHA_FLAG
+        self.window: pygame.Surface = window
+        self.pos_x = BOARDPOSX
+        self.pos_y = BOARDPOSY
+        self.surface: pygame.Surface = pygame.Surface(
+            (square_count * square_size, square_count * square_size)
         )
-        self.rect: pygame.Rect = self.surface.get_rect(topleft=(BOARDPOSX, BOARDPOSY))
+        self.highlighted_surface: pygame.Surface = pygame.Surface(
+            (square_count * square_size, square_count * square_size), flags=ALPHA_FLAG
+        )
+        self.rect: pygame.Rect = self.surface.get_rect(topleft=(self.pos_x, self.pos_y))
         self._draw_base_board()
-        self.highlighted_squares: list[tuple[int, int]]  = []
+        self.highlighted_squares: list[tuple[int, int]] = []
 
     def _create_board_struct(self) -> list[list[Piece | None]]:
         """
@@ -73,14 +79,16 @@ class Board:
 
     def _draw_base_board(self):
         """
-        Colors the board with a checkerboard style, with the first (top-left) square being the self.light_color 
+        Colors the board with a checkerboard style, with the first (top-left) square being the self.light_color
         """
         # we go through the board and for each square, we "blit" onto the board the current square.
         for row in range(self.square_count):
             for col in range(self.square_count):
                 self.color_square(row, col)
 
-    def highlight_square(self, row_index : int, col_index : int, color : pygame.Color, alpha=128):
+    def highlight_square(
+        self, row_index: int, col_index: int, color: pygame.Color, alpha=128
+    ):
         """
         Highlights an individual square by drawing over the semi-transparent highlighted surface
 
@@ -96,7 +104,7 @@ class Board:
             square, (col_index * SQUARESIZE, row_index * SQUARESIZE)
         )
 
-    def draw_highlights(self, color : pygame.Color):
+    def draw_highlights(self, color: pygame.Color):
         """
         Clears highlights and redraws highlights onto the highlight surface
 
@@ -106,12 +114,18 @@ class Board:
         self.clear_highlights()
         for square in self.highlighted_squares:
             self.highlight_square(*square, color)
-        self.window.blit(self.highlighted_surface, (BOARDPOSX, BOARDPOSY))
+        self.window.blit(self.highlighted_surface, (self.pos_x, self.pos_y))
 
     def clear_highlights(self):
         self.highlighted_surface.fill((0, 0, 0, 0))
 
-    def color_square(self, row_index : int, col_index : int, color : pygame.Color = None, highlight: bool =False):
+    def color_square(
+        self,
+        row_index: int,
+        col_index: int,
+        color: pygame.Color = None,
+        highlight: bool = False,
+    ):
         """
         Colors an individual square on the board.
         If no color is provided it colors based on the default checkerboard pattern and its (row, col) position
@@ -122,20 +136,22 @@ class Board:
             col_index (int) : the col_index of the square
             Color (pygame.Color, optional) : the color of the square, if None defaults to dark / light
             highlight (bool, optional) : Flag to check if semi-transparent highlight is used. Default is False
-        
+
         """
         square = pygame.Surface((SQUARESIZE, SQUARESIZE))
         if color is None:
-            color = self.color_dark if (row_index + col_index) % 2 == 1 else self.color_light
-        flags = ALPHA_FLAG if highlight else 0  
+            color = (
+                self.color_dark
+                if (row_index + col_index) % 2 == 1
+                else self.color_light
+            )
+        flags = ALPHA_FLAG if highlight else 0
         square = pygame.Surface((SQUARESIZE, SQUARESIZE), flags=flags)
         if highlight:
             square.fill(*color, 128)
         else:
             square.fill(color)
         self.surface.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
-
-            
 
     def set_piece(self, piece: Piece):
         """
@@ -151,41 +167,52 @@ class Board:
             IndexError: If the specififed location is out of bounds
         """
         # ensures board is empty at location.
-        row, col = piece.row , piece.col
+        row, col = piece.row, piece.col
 
         if not self.in_bounds(row, col):
             raise IndexError(f"Board position out of bounds: ({row}, {col})")
-        
 
         if self.struct[row][col] is None:
             self.struct[row][col] = piece
         else:
-            raise ValueError(
-                f"Square is occupied at ({row}, {col})"
-            )
+            raise ValueError(f"Square is occupied at ({row}, {col})")
 
+    def is_empty(self, row: int, col: int) -> bool:
+        """
+        Checks if given square is empty
 
-    def get_square_contents(self, row : int, col : int) -> Piece | None:
+        Args:
+            row (int): The row of the square
+            col (int): The column of the square
+
+        Raises:
+            IndexError: if the position (row, col) is not valid
+        """
+        if not self.in_bounds(row, col):
+            raise IndexError(f"Position out of bounds: ({row}, {col})")
+        return self.get_square_contents(row, col) is None
+
+    def get_square_contents(self, row: int, col: int) -> Piece | None:
         """
         Returns the piece at the board position board(row, col), or None if the square is empty
-        input : 
+        input :
             row (int) : 0-indexed
             col (int) : 0-indexed
         Raises :
             ValueError if row or column are out of bounds
         """
-        if not (0 <= row < SQUARECOUNT and 0 <= col < SQUARECOUNT): 
-            raise ValueError("Invalid row or column") 
+        if not (0 <= row < SQUARECOUNT and 0 <= col < SQUARECOUNT):
+            raise ValueError("Invalid row or column")
         return self.struct[row][col]
 
-    def generate_legal_moves(self, piece : Piece | None) -> list[tuple[int, int]]:
+    def generate_legal_moves(self, piece: Piece | None) -> list[tuple[int, int]]:
         """
-        Returns the legal moves for a given piece. 
-        
+        Returns the legal moves for a given piece.
+
         Currently only returns valid moves as determined by the piece.
         In the future it will filter out moves that are illegal. i.e. a move that would lead to a checkmate.
 
-        Args: 
+        Args:
             piece (Piece | None): the given piece. If the piece does not exist returns the empty list.
         Returns:
             list[tuple[int, int]]: a list of legal moves positions stored as (row, col) tuples.
@@ -195,9 +222,10 @@ class Board:
         else:
             return []
 
-    def in_bounds(self, row : int , col : int) -> bool:
+    def in_bounds(self, row: int, col: int) -> bool:
         """
         Returns if a position is contained within the board
+
         Args:
             row(int): The positions row
             col(int): The positions col
@@ -206,11 +234,11 @@ class Board:
 
     def set_pieces(self, dark_pieces: list[Piece], light_pieces: list[Piece]):
         """
-        Sets the dark pieces and light pieces for the corresponding players. 
-        
+        Sets the dark pieces and light pieces for the corresponding players.
+
         Assumes each piece has their 'row' and 'col' attributes setup
-        
-        This method is only used for setting up all pieces, not moving groups of pieces. 
+
+        This method is only used for setting up all pieces, not moving groups of pieces.
 
         Args:
             dark_pieces(list[Piece]): The pieces for the player who plays the dark pieces
@@ -225,42 +253,57 @@ class Board:
             self.set_piece(white_piece)
 
     def move_piece(self, piece: Piece, dest_row: int, dest_col: int) -> Piece | None:
-            """
-            moves the given piece by updating both the pieces attributes and the boards structure.
-            If a piece is located at the destination square, it is "captured" by removing it from the board structure
-            and is returned. 
-
-            This method does not handle drawing or rendering only piece and board logic. 
-
-            Args:
-                piece (Piece): The piece that is being moved
-                dest_row (int): The row the piece will move to
-                dest_col (int): THe col the piece will move to
-            
-            Returns:
-                (Piece | None): Returns a captured piece if any, else returns None
-            """
-            # Move piece by updating piece parameters
-            if piece.is_valid_move(dest_row, dest_col, self):
-                captured_piece = self.get_square_contents(dest_row, dest_col)
-                (old_row, old_col) = piece.apply_move(dest_row, dest_col) # update piece parameters
-                # update board parameters
-                self.struct[old_row][old_col] = None
-                self.struct[dest_row][dest_col] = piece
-                return captured_piece
-
-
-    def upgrade_piece(self, piece : Piece, dest_type : str) -> Piece:
         """
-        
+        moves the given piece by updating both the pieces attributes and the boards structure.
+        If a piece is located at the destination square, it is "captured" by removing it from the board structure
+        and is returned.
+
+        This method does not handle drawing or rendering only piece and board logic.
+
+        Args:
+            piece (Piece): The piece that is being moved
+            dest_row (int): The row the piece will move to
+            dest_col (int): THe col the piece will move to
+
+        Returns:
+            (Piece | None): Returns a captured piece if any, else returns None
         """
-        row, col, color = piece.color, piece.row, piece.col, piece.color
+        # Move piece by updating piece parameters
+        if piece.is_valid_move(dest_row, dest_col, self):
+            captured_piece = self.get_square_contents(dest_row, dest_col)
+            (old_row, old_col) = piece.apply_move(
+                dest_row, dest_col
+            )  # update piece parameters
+            piece.update_after_move()
+            # update board parameters
+            self.struct[old_row][old_col] = None
+            self.struct[dest_row][dest_col] = piece
+            return captured_piece
+
+    def upgrade_piece(self, piece: Piece, dest_type: str) -> Piece:
+        """
+        Upgrades a pawn piece into a new type (rook, bishop, knight or queen).
+
+        Args:
+            piece (Piece): The pawn piece to be upgraded
+            dest_type (str): The type the piece will be upgraded to
+
+        Returns:
+            Piece: The upgraded piece
+
+        Raises:
+            TypeError: If the piece is not a pawn
+            ValueError: If the dest_type is invalid
+        """
+        row, col, color = piece.row, piece.col, piece.color
         upgrade_selection = {
-            PIECE_ROOK : Rook,
-            PIECE_BISHOP : Bishop,
-            PIECE_KNIGHT : Knight,
-            PIECE_QUEEN : Queen
+            PIECE_ROOK: Rook,
+            PIECE_BISHOP: Bishop,
+            PIECE_KNIGHT: Knight,
+            PIECE_QUEEN: Queen,
         }
+        if piece.type != PIECE_PAWN:
+            raise TypeError(f"piece : {piece.type} cannot be promoted")
         if dest_type not in upgrade_selection:
             raise ValueError(f"Invalid upgrade type : {dest_type}")
         piece_class = upgrade_selection[dest_type]
@@ -268,42 +311,85 @@ class Board:
         self.struct[new_piece.row][new_piece.col] = new_piece
         return new_piece
 
-
     def draw_pieces(self):
         """
         Draws all pieces located on the board
+
+        Iterates through the board, and for each square that contains a piece calls the
+        'draw_piece' method to render it.
+
+        This method assumes all surface details are correctly implemented for any given piece
         """
         for row in range(self.square_count):
             for col in range(self.square_count):
-                square = self.struct[row][col]
-                if square != None:
-                    self.draw_piece(square, row, col, self.window)
+                contents = self.get_square_contents(row, col)
+                if contents is not None:
+                    self.draw_piece(contents, row, col)
 
-    def get_abs_pos(self, row, col):
-        return (BOARDPOSX + col * SQUARESIZE, BOARDPOSY + row * SQUARESIZE)
-
-    def draw_piece(self, piece: Piece, row: int, col: int, surface):
+    def get_abs_pos(self, row: int, col: int) -> tuple[int, int]:
         """
-        draw_piece(self, piece : Piece, row : int , col : int):
-        Draws the piece onto the board by first coloring the square under it
-        and then drawing the piece over it on the board surface
-        returns : None
+        converts a grid pos (row, col) into a absolute window screen position (x, y)
+
+        The returned position is relative to the gane windows top-left pixel coordinate, based on the boards original position.
+
+        Args:
+            row (int): The row on the grid
+            col (int): The col on the grid
+
+        Returns:
+            tuple[int, int]: The (x, y) screen position of the top-left corner of the square
+
+        Raises:
+            ValueError: If the given grid pos (row, col) is not found on the board
+        """
+        if not self.in_bounds(row, col):
+            raise ValueError(f"No position corresponds to grid position ({row}, {col})")
+        return (
+            self.pos_x + col * self.square_size,
+            self.pos_y + row * self.square_size,
+        )
+
+    def draw_piece(self, piece: Piece, row: int, col: int):
+        """
+        Draws the piece on the game window at a specific board position (row, col)
+
+        Assumes the piece's image data has been correctly implemented
+
+        Notes:
+
+            This method should be called after all background and board drawing methods as pieces are drawn on the top of the
+            board. Failure to do so may lead to pieces being overwritten
+
+        Args:
+            piece (Piece): The Piece to be drawn
+            row (int): The row on the board
+            col (int): The col on the board
         """
         pos = self.get_abs_pos(row, col)
-        ## first we want to draw a square
-        surface.blit(piece.surface, (pos))
+        self.window.blit(piece.surface, pos)
 
-    def mouse_pos_to_grid(self, pos):
+    def mouse_pos_to_grid(
+        self, pos: tuple[int, int]
+    ) -> tuple[int, int] | tuple[None, None]:
         """
-        Converts a mouse position to a grid position returning row column tuple
+        Converts a mouse position relative to the window into a grid position relative to the board,
+        If the mouse position is out of bounds returns (None, None)
+
+        Args:
+
+            pos (tuple[int, int]): The mouse position
+
+        Returns:
+
+            tuple[int, int] | tuple[None, None]: The grid position (row, col) of the board
+            or (None, None) if the mouse is out of bounds
         """
-        mouse_x = pos[0]
-        mouse_y = pos[1]
+        mouse_x, mouse_y = pos
         if not self.rect.collidepoint(mouse_x, mouse_y):
             return (None, None)
 
-        col = int((mouse_x - BOARDPOSX) // SQUARESIZE)
-        row = int((mouse_y - BOARDPOSY) // SQUARESIZE)
+        col = (mouse_x - self.pos_x) // SQUARESIZE
+        row = (mouse_y - self.pos_y) // SQUARESIZE
 
         # handles the rare case that they select right most or bottom most edge,
         # leading to row or column value of 8, illegal
@@ -313,33 +399,35 @@ class Board:
             return (None, None)
 
     def draw_board(self):
-        #for row in range(SQUARECOUNT):
-            #for col in range(SQUARECOUNT):
-                #self.color_square(row, col)
-        self.window.blit(self.surface, (BOARDPOSX, BOARDPOSY))
+        """
+        Draws the base board surface on the game window's surface, at the board position.
 
+        Must be called before drawing highlights or pieces.
+
+        """
+        self.window.blit(self.surface, (self.pos_x, self.pos_y))
 
     def draw_menu(self, promo):
-        self.window.blit(promo.surface, (promo.x + BOARDPOSX, promo.y + BOARDPOSY))
+        """
+        Draws the promotion menu, on the game window's surface,
+        Must be called after background and piece surfaces are drawn
+        """
+        ## Perhaps move this method out of the board class and into the menu class
+        self.window.blit(promo.surface, (promo.x + self.pos_x, promo.y + self.pos_y))
 
-    def undraw_moves(self):
-        self.clear_highlights()
+    def set_highlighted_squares(self, squares: list[tuple[int, int]]):
+        """
+        Sets the highlighted_squares attribute of the board.
 
-    def set_highlighted_squares(self, moves):
-        self.highlighted_squares = moves
+        Args:
+            squares (list[tuple[int, int]]): A list of (row, col) tuples representing board squares to be highlighted
+        """
+        self.highlighted_squares = squares
 
     def clear_highlighted_squares(self):
+        """
+        Clears the list containing highlighted squares, has no visual component.  
+        
+        """
         self.highlighted_squares = []
 
-
-
-    ### State methods, might move
-
-    def valid_square_selected(self, mouse_pos):
-        return self.mouse_pos_to_grid(mouse_pos) != (None, None)
-
-    def valid_move_selected(self, mouse_pos, valid_moves):
-        return (
-            self.valid_square_selected(mouse_pos)
-            and self.mouse_pos_to_grid(mouse_pos) in valid_moves
-        )
