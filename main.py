@@ -19,8 +19,7 @@ from objects.board import Board
 from objects.game_state import GameState
 from objects.team import Team
 
-FPS = 30
-
+FPS = 60
 # TODO:
 # VALID SQUARE SELECT AND VALID MOVE SELECT IN BOARD NEED TO FIXED
 # Game State is next
@@ -56,6 +55,7 @@ def main():
         game_state.render()
         delta_report += 1
         clock.tick(FPS)
+        """        
         if delta_report == 50:
             print("\n"*2)
             print(f"Current Player : {game_state.print_current_player()}")
@@ -65,6 +65,7 @@ def main():
             print(f"Captured White Pieces : {white_player.get_count_captured()}")
             print("\n"*2)
             delta_report = 0
+        """
 
 
 

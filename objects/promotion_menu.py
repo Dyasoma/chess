@@ -64,25 +64,25 @@ class PromotionMenu:
             options.append(f"{piece}_{color_str}")
         return options
 
-    def valid_promotion_selected(self, mouse_pos: tuple[int, int]) -> int | None:
+    def get_valid_promotion_option(self, mouse_pos: tuple[int, int]) -> int | None:
         """
         Checks if a valid promotion was selected, and if so returns the selected option as an index value that corresponds
-        with the values available in the self.img_options attribute
+        with the values available in the self.img_options attribute, otherwise returns None.
 
         Args:
             mouse_pos tuple[int, int]: The mouse position relative to the game window
 
         Returns:
-            int | None: Returns an integer if a valid option was selected, otherwise None. 
+            int | None: Returns an integer if a valid option was selected, otherwise None.
         """
         mouse_x, mouse_y = mouse_pos
         local_x = mouse_x - BOARDPOSX
         local_y = mouse_y - BOARDPOSY
         if not self.rect.collidepoint(local_x, local_y):
             return None
-        
+
         offset_x = mouse_x - (BOARDPOSX + self.x)
-        #selection = int((mouse_x - self.x) // SQUARESIZE)
+        # selection = int((mouse_x - self.x) // SQUARESIZE)
         selection = int((offset_x) // SQUARESIZE)
         count = len(self.image_options)
         if 0 <= selection < count:
@@ -92,7 +92,7 @@ class PromotionMenu:
 
     def _draw_base_surface(self):
         """
-        Creates the basic surface of the promotion menu. 
+        Creates the basic surface of the promotion menu.
 
         Assumes that the self.surface attribute and the corrersponding image file paths exist
         """
@@ -105,3 +105,9 @@ class PromotionMenu:
             img = pygame.transform.smoothscale(img, (SQUARESIZE, SQUARESIZE))
             square.blit(img, (0, 0))
             self.surface.blit(square, (i * SQUARESIZE, 0))
+
+    def get_piece_type(self, promotion_option: int) -> str:
+        """
+        Returns the type of the piece as a str
+        """
+        return self.image_options[promotion_option].split(sep="_")[0]

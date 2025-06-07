@@ -1,6 +1,7 @@
 import pygame
 from .constants import (
     WHITE,
+    BLACK,
     SQUARESIZE,
     BOARDPOSX,
     BOARDPOSY,
@@ -47,14 +48,14 @@ class Piece:
     def generate_valid_moves(self, board):
         # exists purely to be over written by subclasses
         raise NotImplementedError
-    
+
     def update_after_move(self):
         """
         Exists as a method to update certain pieeces after a successful move
         """
         pass
 
-    def is_valid_move(self, new_row : int , new_col : int, board):
+    def is_valid_move(self, new_row: int, new_col: int, board):
         """
         Checks if a move is valid, return True. Otherwise False
         """
@@ -78,6 +79,12 @@ class Piece:
         """
         assert isinstance(other, Piece)
         return self.color != other.color
+
+    def is_promotable(self) -> bool:
+        """
+        Checks if the Piece can be promoted, if it is a pawn this method will be overwritten, otherwise returns False.
+        """
+        return False
 
     def apply_move(self, new_row, new_col) -> tuple[int, int]:
         """
@@ -192,12 +199,23 @@ class Pawn(Piece):
 
     def update_after_move(self):
         """
-        On successful movement, updates the self.has_moved attribute to prevent "double-jumps". 
+        On successful movement, updates the self.has_moved attribute to prevent "double-jumps".
         """
         if not self.has_moved:
             self.has_moved = True
-        
 
+    def is_promotable(self) -> bool:
+        """
+        Checks if the Pawn can be promoted, must be called after the pawn has been moved.
+        """
+        dark_main_rank = 0
+        light_main_rank = 7
+        if self.type == "pawn":
+            if (self.color == WHITE and self.row == dark_main_rank) or (
+                self.color == BLACK and self.row == light_main_rank
+            ):
+                return True
+        return False
 
 
 class Knight(Piece):

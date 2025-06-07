@@ -12,6 +12,7 @@ from .constants import (
     PIECE_QUEEN,
 )
 from .piece import Piece, Pawn, Knight, Bishop, Rook, Queen, King
+from .team import Team
 
 
 class Board:
@@ -280,11 +281,12 @@ class Board:
             self.struct[dest_row][dest_col] = piece
             return captured_piece
 
-    def upgrade_piece(self, piece: Piece, dest_type: str) -> Piece:
+    def upgrade_piece(self, team: Team, piece: Piece, dest_type: str) -> Piece:
         """
         Upgrades a pawn piece into a new type (rook, bishop, knight or queen).
 
         Args:
+            team (Team): The team the pawn belongs to.
             piece (Piece): The pawn piece to be upgraded
             dest_type (str): The type the piece will be upgraded to
 
@@ -292,7 +294,7 @@ class Board:
             Piece: The upgraded piece
 
         Raises:
-            TypeError: If the piece is not a pawn
+            TypeError: If the piece is not a pawn, or if the piece does not belong to the given player / team
             ValueError: If the dest_type is invalid
         """
         row, col, color = piece.row, piece.col, piece.color
@@ -304,11 +306,15 @@ class Board:
         }
         if piece.type != PIECE_PAWN:
             raise TypeError(f"piece : {piece.type} cannot be promoted")
+        if not team.owns(piece):
+            raise TypeError(f"piece : {piece.type} does not belong to team")
         if dest_type not in upgrade_selection:
             raise ValueError(f"Invalid upgrade type : {dest_type}")
         piece_class = upgrade_selection[dest_type]
         new_piece = piece_class(color, row, col, dest_type)
         self.struct[new_piece.row][new_piece.col] = new_piece
+        team.active_pieces.remove(piece)
+        team.active_pieces.append(new_piece)
         return new_piece
 
     def draw_pieces(self):
@@ -426,8 +432,7 @@ class Board:
 
     def clear_highlighted_squares(self):
         """
-        Clears the list containing highlighted squares, has no visual component.  
-        
+        Clears the list containing highlighted squares, has no visual component.
+
         """
         self.highlighted_squares = []
-

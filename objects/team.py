@@ -69,6 +69,16 @@ class Team:
         ]
         return pieces
 
+    def owns(self, piece: Piece) -> bool:
+        """
+        Checks that a piece belongs to a given team, Returns True if the piece has the same color as the team
+
+        Args:
+            piece (Piece): The piece that we are comparing to,
+
+        """
+        return self.color == piece.color
+
     def get_count_active(self):
         return len(self.active_pieces)
 
