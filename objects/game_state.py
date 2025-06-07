@@ -3,135 +3,71 @@ from .constants import (
     SELECTMOVE,
     SELECTPROMOTION,
     GREEN,
-    BOARDPOSX,
-    BOARDPOSY,
     BLACK,
     WHITE,
-    GOLD
 )
 from .board import Board
 from pygame.locals import *
+from .piece import Piece
 from .promotion_menu import PromotionMenu
+from .team import Team
 import pygame
 import sys
 
 
 class GameState:
-    def __init__(self, board: Board, black_team, white_team):
+    """
+    Over-arching object that controls game state.
+
+    Args:
+        board (Board): The chessboard the game will be played on
+        dark_team (Team): The Black players team, i.e. collection of their pieces they will play with
+        light_team (Team): The White players team, i.e. collection of their pieces they will play with
+
+    Attributes:
+        mouse_pressed (Bool): Whether or not the mouse has been pressed, for state functions this value must continuously
+        be set to False
+        mouse_pos (tuple[int, int]): The mouse position (x, y) relative to the top-left of the game window
+        selected_piece (Piece): The current selected piece obtained from mouse selection
+        captured_piece (Piece): The last captured piece obtained from piece capturing
+        legal_moves (list[tuple[int ,int]]): A list of tuples which represent legal moves
+        state (int): The current game state, whether a player is selecting a piece, moving the piece or upgrading a piece.
+        board (Board): The chessboard the game will be played on
+        dark_team (Team): The Black players team, i.e. collection of their pieces they will play with
+        light_team (Team): The White players team, i.e. collection of their pieces they will play with
+        current_player (int): The current player whose turn it is
+        other_player (int): The player whose is waiting for their turn
+        promotion_menu (PromotionMenu): The object representing the upgrade menu once a pawn reaches the enemy main rank.
+
+    """
+
+    def __init__(self, board: Board, dark_team: Team, light_team: Team):
         self.mouse_pressed = False
-        self.mouse_pos = (None, None)
-        self.selected_piece = None
-        self.captured_piece = None
-        self.legal_moves = []
-        self.state = SELECTPIECE
-        self.board = board
-        self.black_team = black_team
-        self.white_team = white_team
-        self.current_player = self.white_team
+        self.mouse_pos: tuple[int, int] = (0, 0)
+        self.selected_piece: Piece | None = None
+        self.captured_piece: Piece | None = None
+        self.legal_moves: list[tuple[int, int]] = []
+        self.state: int = SELECTPIECE
+        self.board: Board = board
+        self.dark_team: Team = dark_team
+        self.light_team: Team = light_team
+        self.current_player: Team = self.light_team
+        self.other_player: Team = self.dark_team
         self.promotion_menu = None
 
     def handle_events(self):
+        """
+        Handles the pygame side of events
+        """
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
             if event.type == MOUSEBUTTONDOWN:
-                # get the mouse position
                 self.set_mouse_pressed(True)
                 self.set_mouse_pos(*pygame.mouse.get_pos())
 
-    def handle_piece_selection(self):
-        # state conditionals
-        if self.mouse_pressed and self.board.valid_square_selected(
-            self.mouse_pos
-        ):  # mouse is pressed
-            # update state variable
-            row, col = self.board.mouse_pos_to_grid(self.mouse_pos)
-            self.set_selected_piece(self.board.get_piece(row, col))
-            ## we now have a piece, check that it is valid for the given player
-            if (
-                self.selected_piece
-                and self.selected_piece.color == self.current_player.color
-            ):
-                self.set_legal_moves(
-                    self.board.generate_legal_moves(self.selected_piece)
-                )
-                self.board.set_highlighted_squares(self.legal_moves)
-                self.set_state(SELECTMOVE)  # go to move selection
-            # sanitize
-            self.set_mouse_pressed(False)
-
-    def handle_move_selection(self):
-        # state conditionals
-        if self.legal_moves:
-            if self.mouse_pressed:
-                if self.board.valid_move_selected(self.mouse_pos, self.legal_moves):
-                    # update state variables
-                    row, col = self.board.mouse_pos_to_grid(self.mouse_pos)
-                    # move the piece
-                    self.captured_piece = self.board.move_piece(
-                        self.selected_piece, row, col
-                    )
-                    ## check if piece is a pawn
-                    if self.selected_piece.type == "pawn":
-                        if (
-                            self.selected_piece.row == 0
-                            and self.selected_piece.color == WHITE
-                        ) or (
-                            self.selected_piece.row == 7
-                            and self.selected_piece.color == BLACK
-                        ):
-                            ## active promotion_menu
-                            bucket = self.selected_piece
-                            self.reset_selection()
-                            self.state = SELECTPROMOTION
-                            self.selected_piece = bucket
-                            # build promotion menu
-                            self.build_promotion_menu()
-                            self.update_current_player(self.captured_piece)
-                        else:
-                            self.reset_selection()
-                            self.update_current_player(self.captured_piece)
-                    else:
-                        self.reset_selection()
-                        self.update_current_player(self.captured_piece)
-                else:
-                    self.reset_selection()
-        else:
-            self.reset_selection()
-
-    def handle_promotion_selection(self):
-        if self.promotion_menu:
-            if self.mouse_pressed:
-                promotion_option = self.promotion_menu.valid_promotion_selected(
-                    self.mouse_pos
-                )
-                if promotion_option != None:
-                    ## we now have the promotion option
-                    ## create a new piece in the location of the old piece
-                    if self.selected_piece.color == BLACK:
-                        self.black_team.active_pieces.remove(self.selected_piece)
-                        self.selected_piece = self.board.upgrade_piece(self.selected_piece, self.promotion_menu.options[promotion_option])
-                        self.black_team.active_pieces.append(self.selected_piece)
-                    else:
-                        self.white_team.active_pieces.remove(self.selected_piece)
-                        self.selected_piece = self.board.upgrade_piece(self.selected_piece, self.promotion_menu.options[promotion_option])
-                        self.white_team.active_pieces.append(self.selected_piece)
-
-
-                    self.set_mouse_pressed(False)
-                    self.reset_selection()
-                else:
-                    self.mouse_pressed = False
-        else:
-            self.reset_selection()
-
-    def build_promotion_menu(self):
-        self.promotion_menu = PromotionMenu(self.selected_piece.color)
-
-    def update_logic(
-        self,
-    ):
+    def update_state(self):
         if self.state == SELECTPIECE:
             self.handle_piece_selection()
         elif self.state == SELECTMOVE:
@@ -139,33 +75,136 @@ class GameState:
         elif self.state == SELECTPROMOTION:
             self.handle_promotion_selection()
 
+    def handle_piece_selection(self):
+        """
+        Piece selection state
+        """
+        if self.mouse_pressed:
+            if self.valid_square_selected(self.mouse_pos):
+                row, col = self.board.mouse_pos_to_grid(
+                    self.mouse_pos
+                )  # convert to grid positions
+                if not self.board.is_empty(row, col):
+                    self.set_selected_piece(self.board.get_square_contents(row, col))
+                    if self.selected_piece and self.current_player.owns(
+                        self.selected_piece
+                    ):
+                        self.set_state(SELECTMOVE)  # go to move selection
+                    else:
+                        player = self.print_current_player()
+                        self.reset_turn(f"{player} does not own the selected piece")
+                else:
+                    self.reset_turn("Board is empty at selected location")
+            else:
+                self.reset_turn("No Valid Square was selected")
+        else:
+            self.reset_turn()
+
+    def handle_move_selection(self):
+        """
+        Move selection after a piece has been selected
+        """
+        # generate associated move data
+        if self.legal_moves:
+            if self.mouse_pressed:
+                if self.valid_square_selected(self.mouse_pos):
+                    row, col = self.board.mouse_pos_to_grid(self.mouse_pos)
+                    if self.valid_move_selected(row, col, self.legal_moves):
+                        self.captured_piece = self.board.move_piece(
+                            self.selected_piece, row, col
+                        )
+                        if self.selected_piece.is_promotable():
+                            self.set_state(SELECTPROMOTION)
+                        else:
+                            self.end_turn()
+                    else:
+                        self.reset_turn("Invalid move for selected piece")
+                else:
+                    self.reset_turn("Invalid Square Selected")
+        else:
+            self.reset_turn("Piece has no valid moves")
+
+    def handle_promotion_selection(self):
+        """
+        Promotion of a pawn into a new piece, must occur.
+        """
+        assert (
+            self.promotion_menu is not None
+        ), "Promotion Menu must exist in the SELCTPROMOTION state"
+        if self.mouse_pressed:
+            promotion_option = self.promotion_menu.get_valid_promotion_option(
+                self.mouse_pos
+            )
+            if promotion_option != None:
+                new_type = self.promotion_menu.get_piece_type(promotion_option)
+                self.board.upgrade_piece(
+                    self.current_player, self.selected_piece, new_type
+                )
+                self.end_turn()
+            else:
+                print("Invalid promotion option")
+
+    def end_turn(self):
+        self.reset_selection()
+        self.update_current_player(self.captured_piece)
+        self.set_state(SELECTPIECE)
+
+    def reset_turn(self, msg: str = None):
+        if msg:
+            print(f"{msg}")
+        self.reset_selection()
+
+    def build_promotion_menu(self):
+        self.promotion_menu = PromotionMenu(self.selected_piece.color)
+
     def reset_selection(self):
         self.set_legal_moves([])
         self.set_selected_piece(None)
+        self.board.clear_highlighted_squares()
         self.set_state(SELECTPIECE)
         self.set_mouse_pressed(False)
-        self.board.clear_highlighted_squares()
         self.promotion_menu = None
 
     def update_current_player(self, captured_piece):
-        if self.current_player == self.black_team:
-            if captured_piece:
-                self.white_team.active_pieces.remove(captured_piece)
-                self.white_team.captured_pieces.append(captured_piece)
-            self.current_player = self.white_team
-        elif self.current_player == self.white_team:
-            if captured_piece:
-                self.black_team.active_pieces.remove(captured_piece)
-                self.black_team.captured_pieces.append(captured_piece)
-            self.current_player = self.black_team
+        """
+        Changes the current player into the other player. i.e. changes the active player from white to black
+        """
+        if captured_piece:
+            self.other_player.active_pieces.remove(captured_piece)
+            self.other_player.captured_pieces.append(captured_piece)
+        if self.current_player.color == WHITE:
+            print("It is now dark's turn")
+            self.current_player = self.dark_team
+            self.other_player = self.light_team
+        else:
+            print("It is now light's turn")
+            self.current_player = self.light_team
+            self.other_player = self.dark_team
 
-    def render(self, WINDOWSURF: pygame.Surface):
-        self.board.draw_board(WINDOWSURF)  # draw board onto the window
-        self.board.draw_highlights(GREEN, WINDOWSURF)
-        self.board.draw_pieces(WINDOWSURF)  # draw all pieces onto the board
+    def render(self):
+        self.board.draw_board()  # draw board onto the window
+        self.board.draw_highlights(GREEN)
+        self.board.draw_pieces()  # draw all pieces onto the board
         if self.promotion_menu:
-            self.board.draw_menu(self.promotion_menu, WINDOWSURF)
-        
+            self.board.draw_menu(self.promotion_menu)
+
+    ### State methods, might move
+
+    def valid_square_selected(self, mouse_pos: tuple[int, int]) -> bool:
+        """
+        Method that checks if the mouse position corresponds to a board square.
+
+        Args:
+            mouse_pos (tuple[int, int]): The current mouse_pos corresponding to the last mouse press down
+
+        Returns:
+            bool : Returns False if outer border of game is selected, otherwise True.
+
+        """
+        return self.board.mouse_pos_to_grid(mouse_pos) != (None, None)
+
+    def valid_move_selected(self, row, col, valid_moves):
+        return (row, col) in valid_moves
 
     def get_mouse_pressed(self):
         return self.mouse_pressed
@@ -194,11 +233,32 @@ class GameState:
     def get_state(self):
         return self.state
 
-    def set_state(self, state):
-        self.state = state
+    def set_state(self, new_state: int):
+        self.state = new_state
+        self.on_enter_new_state(self.state)
+
+    def on_enter_new_state(self, state: int):
+        """
+        A hook method. Whenever we change states, sometimes it is necessary to accomplish some task,
+        This method does just that, and ensure that for each state, the body of the conditional doesn't need to be
+        repeated
+        """
+        self.mouse_pressed = False
+        if state == SELECTMOVE:
+            self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
+            self.board.set_highlighted_squares(self.legal_moves)
+        if state == SELECTPROMOTION:
+            """
+            Bottom two lines remove selected squares during promotion, must consider something different
+            """
+            # self.set_legal_moves([]) # ui
+            # self.board.set_highlighted_squares([]) # ui
+            self.build_promotion_menu()  # actually necessary function call.
+        if state == SELECTPIECE:
+            return
 
     def print_current_player(self):
-        if self.current_player == self.black_team:
+        if self.current_player == self.dark_team:
             return "Black Player"
-        elif self.current_player == self.white_team:
+        elif self.current_player == self.light_team:
             return "White Player"
