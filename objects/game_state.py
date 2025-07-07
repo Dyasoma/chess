@@ -44,10 +44,11 @@ class GameState:
     def __init__(self, board: Board, dark_team: Team, light_team: Team):
         self.mouse_pressed = False
         self.mouse_pos: tuple[int, int] = (0, 0)
-        self.selected_piece: Piece | None = None
-        self.captured_piece: Piece | None = None
-        self.legal_moves: list[tuple[int, int]] = []
-        self.state: int = SELECTPIECE
+        self.selected_piece: Piece | None = None # Selected piece for highlighting and moving of pieces
+        self.captured_piece: Piece | None = None # captured pieces during current players turn
+        self.legal_moves: list[tuple[int, int]] = [] # legal moves the current player can make
+        self.checking_pieces : dict[Piece, tuple[int, int]] # pieces of the other player that are checking the current player
+        self.state: int = SELECTPIECE # state variable 
         self.board: Board = board
         self.dark_team: Team = dark_team
         self.light_team: Team = light_team
@@ -68,6 +69,8 @@ class GameState:
                 self.set_mouse_pos(*pygame.mouse.get_pos())
 
     def update_state(self):
+        ## Note that these method depends on hook methods, i.e. the on_enter_new_state method.
+        ## To handle changes when entering a new state
         if self.state == SELECTPIECE:
             self.handle_piece_selection()
         elif self.state == SELECTMOVE:
@@ -75,9 +78,35 @@ class GameState:
         elif self.state == SELECTPROMOTION:
             self.handle_promotion_selection()
 
+    def set_state(self, new_state: int):
+        self.state = new_state
+        self.on_enter_new_state(self.state)
+
+    def on_enter_new_state(self, state: int):
+        """
+        A hook method. Whenever we change states, sometimes it is necessary to accomplish some task,
+        This method does just that, and ensure that for each state, the body of the conditional doesn't need to be
+        repeated
+        """
+        self.mouse_pressed = False
+        if state == SELECTMOVE:
+            self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
+            self.board.set_highlighted_squares(self.legal_moves)
+        if state == SELECTPROMOTION:
+            """
+            Bottom two lines remove selected squares during promotion, must consider something different
+            """
+            # self.set_legal_moves([]) # ui
+            # self.board.set_highlighted_squares([]) # ui
+            self.build_promotion_menu()  # actually necessary function call.
+        if state == SELECTPIECE:
+            return
+
+
     def handle_piece_selection(self):
         """
         Piece selection state
+        
         """
         if self.mouse_pressed:
             if self.valid_square_selected(self.mouse_pos):
@@ -103,6 +132,8 @@ class GameState:
     def handle_move_selection(self):
         """
         Move selection after a piece has been selected
+
+        Note: Valid moves are generated in the 'on_enter_new_state' method
         """
         # generate associated move data
         if self.legal_moves:
@@ -173,11 +204,11 @@ class GameState:
             self.other_player.active_pieces.remove(captured_piece)
             self.other_player.captured_pieces.append(captured_piece)
         if self.current_player.color == WHITE:
-            print("It is now dark's turn")
+            print("It is now Black's turn")
             self.current_player = self.dark_team
             self.other_player = self.light_team
         else:
-            print("It is now light's turn")
+            print("It is now White's turn")
             self.current_player = self.light_team
             self.other_player = self.dark_team
 
@@ -233,29 +264,7 @@ class GameState:
     def get_state(self):
         return self.state
 
-    def set_state(self, new_state: int):
-        self.state = new_state
-        self.on_enter_new_state(self.state)
 
-    def on_enter_new_state(self, state: int):
-        """
-        A hook method. Whenever we change states, sometimes it is necessary to accomplish some task,
-        This method does just that, and ensure that for each state, the body of the conditional doesn't need to be
-        repeated
-        """
-        self.mouse_pressed = False
-        if state == SELECTMOVE:
-            self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
-            self.board.set_highlighted_squares(self.legal_moves)
-        if state == SELECTPROMOTION:
-            """
-            Bottom two lines remove selected squares during promotion, must consider something different
-            """
-            # self.set_legal_moves([]) # ui
-            # self.board.set_highlighted_squares([]) # ui
-            self.build_promotion_menu()  # actually necessary function call.
-        if state == SELECTPIECE:
-            return
 
     def print_current_player(self):
         if self.current_player == self.dark_team:

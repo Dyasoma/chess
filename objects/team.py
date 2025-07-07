@@ -84,3 +84,5 @@ class Team:
 
     def get_count_captured(self):
         return len(self.captured_pieces)
+
+

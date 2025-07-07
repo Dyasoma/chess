@@ -209,17 +209,23 @@ class Board:
     def generate_legal_moves(self, piece: Piece | None) -> list[tuple[int, int]]:
         """
         Returns the legal moves for a given piece.
-
         Currently only returns valid moves as determined by the piece.
         In the future it will filter out moves that are illegal. i.e. a move that would lead to a checkmate.
-
         Args:
             piece (Piece | None): the given piece. If the piece does not exist returns the empty list.
+
         Returns:
             list[tuple[int, int]]: a list of legal moves positions stored as (row, col) tuples.
         """
         if piece is not None:
+            # first generate valid moves.
             return piece.generate_valid_moves(self)
+            """
+            valid_moves = piece.generate_valid_moves(self)
+            now we remove moves that are not legal. To do this we must simulate the board after the move
+            legal_moves = self.comb_illegal_moves(self, piece, valid_moves)
+            return legal_moves
+            """
         else:
             return []
 
