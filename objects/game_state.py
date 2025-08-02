@@ -1,4 +1,5 @@
 from .constants import (
+    STARTTURN,
     SELECTPIECE,
     SELECTMOVE,
     SELECTPROMOTION,
@@ -71,14 +72,16 @@ class GameState:
     def update_state(self):
         ## Note that these method depends on hook methods, i.e. the on_enter_new_state method.
         ## To handle changes when entering a new state
-        if self.state == SELECTPIECE:
+        if self.state == STARTTURN:
+            self.handle_turn_start()
+        elif self.state == SELECTPIECE:
             self.handle_piece_selection()
         elif self.state == SELECTMOVE:
             self.handle_move_selection()
         elif self.state == SELECTPROMOTION:
             self.handle_promotion_selection()
 
-    def set_state(self, new_state: int):
+    def change_state(self, new_state: int):
         self.state = new_state
         self.on_enter_new_state(self.state)
 
@@ -87,8 +90,10 @@ class GameState:
         A hook method. Whenever we change states, sometimes it is necessary to accomplish some task,
         This method does just that, and ensure that for each state, the body of the conditional doesn't need to be
         repeated
+
+        Contains the actual "actions" of a given state
         """
-        self.mouse_pressed = False
+        self.set_mouse_pressed(False) #????
         if state == SELECTMOVE:
             self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
             self.board.set_highlighted_squares(self.legal_moves)
@@ -96,19 +101,19 @@ class GameState:
             """
             Bottom two lines remove selected squares during promotion, must consider something different
             """
-            # self.set_legal_moves([]) # ui
             # self.board.set_highlighted_squares([]) # ui
+            self.board.clear_highlighted_squares() # clear highlighted squares
             self.build_promotion_menu()  # actually necessary function call.
         if state == SELECTPIECE:
             return
-
 
     def handle_piece_selection(self):
         """
         Piece selection state
         
         """
-        if self.mouse_pressed:
+        if self.mouse_pressed: # event
+            # validate event
             if self.valid_square_selected(self.mouse_pos):
                 row, col = self.board.mouse_pos_to_grid(
                     self.mouse_pos
@@ -118,16 +123,15 @@ class GameState:
                     if self.selected_piece and self.current_player.owns(
                         self.selected_piece
                     ):
-                        self.set_state(SELECTMOVE)  # go to move selection
+                        self.change_state(SELECTMOVE)  # go to move selection
                     else:
-                        player = self.print_current_player()
-                        self.reset_turn(f"{player} does not own the selected piece")
+                        self.reset_turn(f"{self.print_current_player()} does not own the selected piece")
                 else:
                     self.reset_turn("Board is empty at selected location")
             else:
                 self.reset_turn("No Valid Square was selected")
         else:
-            self.reset_turn()
+            self.continue_in_state()
 
     def handle_move_selection(self):
         """
@@ -136,8 +140,9 @@ class GameState:
         Note: Valid moves are generated in the 'on_enter_new_state' method
         """
         # generate associated move data
-        if self.legal_moves:
-            if self.mouse_pressed:
+        if self.mouse_pressed: # event
+            # validate event 
+            if self.legal_moves:    
                 if self.valid_square_selected(self.mouse_pos):
                     row, col = self.board.mouse_pos_to_grid(self.mouse_pos)
                     if self.valid_move_selected(row, col, self.legal_moves):
@@ -145,15 +150,18 @@ class GameState:
                             self.selected_piece, row, col
                         )
                         if self.selected_piece.is_promotable():
-                            self.set_state(SELECTPROMOTION)
+                            print("You can promote your piece!")
+                            self.change_state(SELECTPROMOTION)
                         else:
                             self.end_turn()
                     else:
                         self.reset_turn("Invalid move for selected piece")
                 else:
                     self.reset_turn("Invalid Square Selected")
+            else:
+                self.reset_turn("Piece has no valid moves")
         else:
-            self.reset_turn("Piece has no valid moves")
+            self.continue_in_state()
 
     def handle_promotion_selection(self):
         """
@@ -174,25 +182,32 @@ class GameState:
                 self.end_turn()
             else:
                 print("Invalid promotion option")
+                self.set_mouse_pressed(False)
+        else:
+            self.continue_in_state()
 
     def end_turn(self):
-        self.reset_selection()
         self.update_current_player(self.captured_piece)
-        self.set_state(SELECTPIECE)
-
-    def reset_turn(self, msg: str = None):
-        if msg:
-            print(f"{msg}")
-        self.reset_selection()
+        self.reset_turn()
 
     def build_promotion_menu(self):
         self.promotion_menu = PromotionMenu(self.selected_piece.color)
 
-    def reset_selection(self):
+    def reset_turn(self, msg: str = None):
+        self.reset(msg)
+        self.change_state(SELECTPIECE)
+
+    def continue_in_state(self):
+        # does nothing, exists to make non-response explicitly do nothing. 
+        pass
+
+    def reset(self, msg = None):
+        if msg:
+            print(f"{msg}")
         self.set_legal_moves([])
         self.set_selected_piece(None)
         self.board.clear_highlighted_squares()
-        self.set_state(SELECTPIECE)
+        self.change_state(SELECTPIECE)
         self.set_mouse_pressed(False)
         self.promotion_menu = None
 
