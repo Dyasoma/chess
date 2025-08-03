@@ -1,4 +1,5 @@
 import pygame
+import sys
 from random import randint
 from objects.constants import (
     WINDOWWIDTH,
@@ -18,6 +19,7 @@ from objects.constants import (
 from objects.board import Board
 from objects.game_state import GameState
 from objects.team import Team
+
 
 FPS = 60
 
