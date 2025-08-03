@@ -31,6 +31,14 @@ class Team:
         self.active_pieces: list[Piece] = self._set_pieces()
         self.captured_pieces: list[Piece] = []
 
+    def __str__(self):
+        if self.color == (0, 0, 0):
+            return "Black Player"
+        elif self.color == (255, 255, 255):
+            return "White Player"
+        else:
+            raise ValueError("Invalid Color")
+
     def _set_pieces(self):
         """
         Used to setup each pieces data, does not modify board, only internal piece data.
@@ -84,5 +92,3 @@ class Team:
 
     def get_count_captured(self):
         return len(self.captured_pieces)
-
-
