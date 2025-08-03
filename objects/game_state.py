@@ -5,6 +5,7 @@ from .constants import (
     SELECTPROMOTION,
     ENDTURN,
     GREEN,
+    RED,
     BLACK,
     WHITE,
 )
@@ -56,9 +57,8 @@ class GameState:
             []
         )  # legal moves the current player can make
         self.checking_pieces: dict[
-            Piece, tuple[int, int]
-        ]  # pieces of the other player that are checking the current player
-        self.state: int = SELECTPIECE  # state variable
+            Piece, tuple[int, int]] = {}  # pieces of the other player that are checking the current player
+        self.state: int = STARTTURN  # state variable
         self.board: Board = board
         self.dark_team: Team = dark_team
         self.light_team: Team = light_team
@@ -105,12 +105,16 @@ class GameState:
 
         Contains the actual "actions" of a given state
         """
-        if state == SELECTPIECE:
-            pass
+        if state == STARTTURN:
+            self.checking_pieces = self.board.get_checking_pieces(self.current_player, self.other_player)
+
+        elif state == SELECTPIECE:
+            if self.checking_pieces:
+                self.board.add_highlighted_squares(RED, list(self.checking_pieces.values()))
         elif state == SELECTMOVE:
             assert self.selected_piece is not None
             self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
-            self.board.set_highlighted_squares(self.legal_moves)
+            self.board.add_highlighted_squares(GREEN, self.legal_moves)
         elif state == SELECTPROMOTION:
             assert self.selected_piece is not None
             assert self.selected_piece.is_promotable()
@@ -126,7 +130,10 @@ class GameState:
 
     def on_exit_current_state(self):
         "Generally exit states are for cleaning up"
-        if self.state == SELECTPIECE:
+        if self.state == STARTTURN:
+            pass
+
+        elif self.state == SELECTPIECE:
             self.set_mouse_pressed(False)
 
         elif self.state == SELECTMOVE:
@@ -143,6 +150,12 @@ class GameState:
             self.set_selected_piece(None)
             self.teardown_promo_menu()
             self.set_legal_moves([])
+            self.checking_pieces = {}
+
+
+    def handle_turn_start(self):
+        self.change_state_to(SELECTPIECE)
+
 
     def handle_piece_selection(self):
         """
@@ -227,7 +240,7 @@ class GameState:
     def handle_end_turn(self):
         "This method has no operation : End of Turn does not handle user events"
         "End of turns can only be accessed from other states"
-        self.change_state_to(SELECTPIECE)
+        self.change_state_to(STARTTURN)
 
     def build_promotion_menu(self, piece: Piece):
         color = piece.color
@@ -264,7 +277,7 @@ class GameState:
 
     def render(self):
         self.board.draw_board()  # draw board onto the window
-        self.board.draw_highlights(GREEN)
+        self.board.draw_highlights(self.board.highlighted_squares)
         self.board.draw_pieces()  # draw all pieces onto the board
         if self.promotion_menu:
             self.board.draw_menu(self.promotion_menu)

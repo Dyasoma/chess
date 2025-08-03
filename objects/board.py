@@ -60,7 +60,7 @@ class Board:
         )
         self.rect: pygame.Rect = self.surface.get_rect(topleft=(self.pos_x, self.pos_y))
         self._draw_base_board()
-        self.highlighted_squares: list[tuple[int, int]] = []
+        self.highlighted_squares: dict[tuple[int, int], pygame.Color] = {}
 
     def _create_board_struct(self) -> list[list[Piece | None]]:
         """
@@ -105,7 +105,7 @@ class Board:
             square, (col_index * SQUARESIZE, row_index * SQUARESIZE)
         )
 
-    def draw_highlights(self, color: pygame.Color):
+    def draw_highlights(self, highlight_dict):
         """
         Clears highlights and redraws highlights onto the highlight surface
 
@@ -113,8 +113,10 @@ class Board:
             color (pygame.Color): The color used to highlight the entire surface
         """
         self.clear_highlights()
-        for square in self.highlighted_squares:
-            self.highlight_square(*square, color)
+        #for color, squares in Highlights:
+        for color, squares in highlight_dict.items():
+            for square in squares:
+                self.highlight_square(*square, color)
         self.window.blit(self.highlighted_surface, (self.pos_x, self.pos_y))
 
     def clear_highlights(self):
@@ -427,18 +429,34 @@ class Board:
         ## Perhaps move this method out of the board class and into the menu class
         self.window.blit(promo.surface, (promo.x + self.pos_x, promo.y + self.pos_y))
 
-    def set_highlighted_squares(self, squares: list[tuple[int, int]]):
+    def add_highlighted_squares(self, color : pygame.Color, squares: list[tuple[int, int]]):
         """
         Sets the highlighted_squares attribute of the board.
 
         Args:
             squares (list[tuple[int, int]]): A list of (row, col) tuples representing board squares to be highlighted
         """
-        self.highlighted_squares = squares
+        self.highlighted_squares[color] = squares
 
     def clear_highlighted_squares(self):
         """
         Clears the list containing highlighted squares, has no visual component.
-
         """
-        self.highlighted_squares = []
+        self.highlighted_squares = {}
+
+    def get_checking_pieces(self, current_player : Team, enemy_team : Team):
+        checking_pieces = {}
+        kings_grid_pos = current_player.king.get_grid_pos()
+
+        for enemy_piece in enemy_team.get_active_pieces():
+            enemy_pieces_moves = self.generate_legal_moves(enemy_piece)
+            if kings_grid_pos in enemy_pieces_moves:
+                enemy_piece_current_pos = enemy_piece.get_grid_pos()
+                checking_pieces[enemy_piece] = enemy_piece_current_pos
+
+        return checking_pieces
+
+
+def Board(VirtualBoard):
+    def __self__(board : Board):
+        super.__init__()
