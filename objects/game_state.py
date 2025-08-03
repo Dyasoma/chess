@@ -9,7 +9,7 @@ from .constants import (
     BLACK,
     WHITE,
 )
-from .board import Board
+from .board import GameBoard
 from pygame.locals import *
 from .piece import Piece
 from .promotion_menu import PromotionMenu
@@ -44,7 +44,7 @@ class GameState:
 
     """
 
-    def __init__(self, board: Board, dark_team: Team, light_team: Team):
+    def __init__(self, board: GameBoard, dark_team: Team, light_team: Team):
         self.mouse_pressed = False
         self.mouse_pos: tuple[int, int] = (0, 0)
         self.selected_piece: Piece | None = (
@@ -53,18 +53,18 @@ class GameState:
         self.captured_piece: Piece | None = (
             None  # captured pieces during current players turn
         )
-        self.legal_moves: list[tuple[int, int]] = (
-            []
-        )  # legal moves the current player can make
+        self.move_dict : dict[Piece, list[tuple[int, int]]] | None = None
+          # a move dictionary for the legal moves a player can make
         self.checking_pieces: dict[
             Piece, tuple[int, int]] = {}  # pieces of the other player that are checking the current player
-        self.state: int = STARTTURN  # state variable
-        self.board: Board = board
+        self.state: int = STARTTURN # state variable
+        self.board: GameBoard = board
         self.dark_team: Team = dark_team
         self.light_team: Team = light_team
         self.current_player: Team = self.light_team
         self.other_player: Team = self.dark_team
         self.promotion_menu = None
+        self.on_enter_new_state(STARTTURN)
 
     def handle_events(self):
         """
@@ -107,14 +107,16 @@ class GameState:
         """
         if state == STARTTURN:
             self.checking_pieces = self.board.get_checking_pieces(self.current_player, self.other_player)
+            self.move_dict = self.board.build_move_dict(self.current_player)
+
 
         elif state == SELECTPIECE:
             if self.checking_pieces:
                 self.board.add_highlighted_squares(RED, list(self.checking_pieces.values()))
         elif state == SELECTMOVE:
             assert self.selected_piece is not None
-            self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
-            self.board.add_highlighted_squares(GREEN, self.legal_moves)
+            #self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
+            self.board.add_highlighted_squares(GREEN, self.move_dict[self.selected_piece])
         elif state == SELECTPROMOTION:
             assert self.selected_piece is not None
             assert self.selected_piece.is_promotable()
@@ -137,7 +139,6 @@ class GameState:
             self.set_mouse_pressed(False)
 
         elif self.state == SELECTMOVE:
-            self.set_legal_moves([])
             self.remove_highlighted_squares()
             self.set_mouse_pressed(False)
 
@@ -149,8 +150,8 @@ class GameState:
             self.set_captured_piece(None)
             self.set_selected_piece(None)
             self.teardown_promo_menu()
-            self.set_legal_moves([])
             self.checking_pieces = {}
+            self.move_dict = {}
 
 
     def handle_turn_start(self):
@@ -193,10 +194,11 @@ class GameState:
         # generate associated move data
         if self.mouse_pressed:  # event
             # validate event
-            if self.legal_moves:
+            legal_moves = self.move_dict[self.selected_piece]
+            if legal_moves:
                 if self.valid_square_selected(self.mouse_pos):
                     row, col = self.board.mouse_pos_to_grid(self.mouse_pos)
-                    if self.valid_move_selected(row, col, self.legal_moves):
+                    if self.valid_move_selected(row, col, legal_moves):
                         self.captured_piece = self.board.move_piece(
                             self.selected_piece, row, col
                         )
@@ -320,12 +322,6 @@ class GameState:
 
     def set_captured_piece(self, piece):
         self.captured_piece = piece
-
-    def get_legal_moves(self):
-        return self.legal_moves
-
-    def set_legal_moves(self, move):
-        self.legal_moves = move
 
     def get_state(self):
         return self.state

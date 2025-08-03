@@ -16,7 +16,7 @@ from objects.constants import (
 )
 
 
-from objects.board import Board
+from objects.board import GameBoard
 from objects.game_state import GameState
 from objects.team import Team
 
@@ -32,7 +32,7 @@ def setup():
     window = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     pygame.display.set_caption("Chess")  # window title
     window.fill(GREY)
-    chessboard = Board(
+    chessboard = GameBoard(
         SQUARESIZE, SQUARECOUNT, DARKCOLOR, LIGHTCOLOR, window
     )  # create a board
     chessboard.draw_board()

@@ -1,4 +1,5 @@
 import pygame
+from copy import deepcopy
 from .constants import (
     BOARDPOSX,
     BOARDPOSY,
@@ -15,52 +16,19 @@ from .piece import Piece, Pawn, Knight, Bishop, Rook, Queen, King
 from .team import Team
 
 
-class Board:
-    """
-    Represents a NxN checkerboard
-
-    Args:
-        square_size (int): The pixel size of each individual square
-        square_count (int): The number of squares in a given row or column i.e. board is square_count x square_count
-        color_dark (pygame.Color): The color of the dark squares
-        color_light (pygame.Color): The color of the light squares
-        window (pygame.Surface): The game window's surface
-
-    Attributes:
-        struct (list[list[Piece | None]]): 2D grid storing pieces or None
-        surface (pygame.Surface): Base surface / Image of the board
-        highlighted_surface (pygame.Surface): Transparent overlay surface for highlighting
-        rect (pygame.Rect): Position and size of the board relative to the window
-        highlighted_squares list[tuple[int, int]]: Squares which are to be highlighted stored as a list of (row,col) tuples.
-
-    """
-
-    def __init__(
-        self,
-        square_size: int,
-        square_count: int,
-        color_dark: pygame.Color,
-        color_light: pygame.Color,
-        window: pygame.Surface,
-    ):
-
+class BoardCore:
+    def __init__(self, square_size: int,square_count: int):
         self.square_size = square_size
-        self.color_light: pygame.Color = color_light
-        self.color_dark: pygame.Color = color_dark
-        self.square_count: int = square_count
-        self.struct: list[list[Piece | None]] = self._create_board_struct()
-        self.window: pygame.Surface = window
-        self.pos_x = BOARDPOSX
-        self.pos_y = BOARDPOSY
-        self.surface: pygame.Surface = pygame.Surface(
-            (square_count * square_size, square_count * square_size)
-        )
-        self.highlighted_surface: pygame.Surface = pygame.Surface(
-            (square_count * square_size, square_count * square_size), flags=ALPHA_FLAG
-        )
-        self.rect: pygame.Rect = self.surface.get_rect(topleft=(self.pos_x, self.pos_y))
-        self._draw_base_board()
-        self.highlighted_squares: dict[tuple[int, int], pygame.Color] = {}
+        self.square_count = square_count
+        self.struct: list[list[Piece | None]] = None # delayed setup
+
+    def init_struct(self):
+        """
+        This function exists so that virtual boards don't need to populate an empty board
+        and can just copy directly. Must be called by objects that require the struct attribute and 
+        Don't change the initialization.
+        """
+        self.struct = self._create_board_struct()
 
     def _create_board_struct(self) -> list[list[Piece | None]]:
         """
@@ -68,7 +36,7 @@ class Board:
         Each element of the list is either a Piece object or None which represents an empty square.
 
         Returns:
-            list[list[Piece | None]]: a square_count x square_count Grid
+            list[list[Piece | None]]: a square_count x square_c(ount Grid
         """
         struct = []
         for row_index in range(self.square_count):
@@ -77,85 +45,7 @@ class Board:
                 row.append(None)
             struct.append(row)
         return struct
-
-    def _draw_base_board(self):
-        """
-        Colors the board with a checkerboard style, with the first (top-left) square being the self.light_color
-        """
-        # we go through the board and for each square, we "blit" onto the board the current square.
-        for row in range(self.square_count):
-            for col in range(self.square_count):
-                self.color_square(row, col)
-
-    def highlight_square(
-        self, row_index: int, col_index: int, color: pygame.Color, alpha=128
-    ):
-        """
-        Highlights an individual square by drawing over the semi-transparent highlighted surface
-
-        Args:
-            row_index (int): The row index of the square to highlight
-            col_index (int): The col index of the square to highlight
-            color (pygame.Color): The highlight Color
-            alpha (int): Transparency level from 0-255, Optional. Defaults to 128
-        """
-        square = pygame.Surface((SQUARESIZE, SQUARESIZE), flags=ALPHA_FLAG)
-        square.fill((*color, alpha))
-        self.highlighted_surface.blit(
-            square, (col_index * SQUARESIZE, row_index * SQUARESIZE)
-        )
-
-    def draw_highlights(self, highlight_dict):
-        """
-        Clears highlights and redraws highlights onto the highlight surface
-
-        Args:
-            color (pygame.Color): The color used to highlight the entire surface
-        """
-        self.clear_highlights()
-        #for color, squares in Highlights:
-        for color, squares in highlight_dict.items():
-            for square in squares:
-                self.highlight_square(*square, color)
-        self.window.blit(self.highlighted_surface, (self.pos_x, self.pos_y))
-
-    def clear_highlights(self):
-        self.highlighted_surface.fill((0, 0, 0, 0))
-
-    def color_square(
-        self,
-        row_index: int,
-        col_index: int,
-        color: pygame.Color = None,
-        highlight: bool = False,
-    ):
-        """
-        Colors an individual square on the board.
-        If no color is provided it colors based on the default checkerboard pattern and its (row, col) position
-        If highlight is True, a semi-transparent version of the color is provided
-
-        Args:
-            row_index (int) : The row index of the square
-            col_index (int) : the col_index of the square
-            Color (pygame.Color, optional) : the color of the square, if None defaults to dark / light
-            highlight (bool, optional) : Flag to check if semi-transparent highlight is used. Default is False
-
-        """
-        square = pygame.Surface((SQUARESIZE, SQUARESIZE))
-        if color is None:
-            color = (
-                self.color_dark
-                if (row_index + col_index) % 2 == 1
-                else self.color_light
-            )
-        flags = ALPHA_FLAG if highlight else 0
-        square = pygame.Surface((SQUARESIZE, SQUARESIZE), flags=flags)
-        if highlight:
-            square.fill(*color, 128)
-        else:
-            square.fill(color)
-        self.surface.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
-
+    
     def set_piece(self, piece: Piece):
         """
         Places piece on the board at its specified (row, col) position
@@ -179,7 +69,7 @@ class Board:
             self.struct[row][col] = piece
         else:
             raise ValueError(f"Square is occupied at ({row}, {col})")
-
+        
     def is_empty(self, row: int, col: int) -> bool:
         """
         Checks if given square is empty
@@ -194,7 +84,7 @@ class Board:
         if not self.in_bounds(row, col):
             raise IndexError(f"Position out of bounds: ({row}, {col})")
         return self.get_square_contents(row, col) is None
-
+    
     def get_square_contents(self, row: int, col: int) -> Piece | None:
         """
         Returns the piece at the board position board(row, col), or None if the square is empty
@@ -207,7 +97,7 @@ class Board:
         if not (0 <= row < SQUARECOUNT and 0 <= col < SQUARECOUNT):
             raise ValueError("Invalid row or column")
         return self.struct[row][col]
-
+    
     def generate_legal_moves(self, piece: Piece | None) -> list[tuple[int, int]]:
         """
         Returns the legal moves for a given piece.
@@ -221,7 +111,10 @@ class Board:
         """
         if piece is not None:
             # first generate valid moves.
-            return piece.generate_valid_moves(self)
+            valid_moves = piece.generate_valid_moves(self)
+
+            # now filter for legal moves
+            
             """
             valid_moves = piece.generate_valid_moves(self)
             now we remove moves that are not legal. To do this we must simulate the board after the move
@@ -230,6 +123,18 @@ class Board:
             """
         else:
             return []
+
+
+    def build_move_dict(self, team : Team) -> dict[Piece, list[tuple[int, int]]]:
+        move_dict = {}
+        # assume we are building valid moves, will add legal move stuff
+        for piece in team.get_active_pieces():
+            move_dict[piece] = self.generate_legal_moves(piece)
+        return move_dict
+
+
+
+
 
     def in_bounds(self, row: int, col: int) -> bool:
         """
@@ -324,6 +229,142 @@ class Board:
         team.active_pieces.remove(piece)
         team.active_pieces.append(new_piece)
         return new_piece
+    
+    def get_checking_pieces(self, current_player : Team, enemy_team : Team):
+        checking_pieces = {}
+        kings_grid_pos = current_player.king.get_grid_pos()
+
+        for enemy_piece in enemy_team.get_active_pieces():
+            enemy_pieces_moves = self.generate_legal_moves(enemy_piece)
+            if kings_grid_pos in enemy_pieces_moves:
+                enemy_piece_current_pos = enemy_piece.get_grid_pos()
+                checking_pieces[enemy_piece] = enemy_piece_current_pos
+
+        return checking_pieces
+
+class GameBoard(BoardCore):
+    """
+    Represents a NxN checkerboard
+
+    Args:
+        square_size (int): The pixel size of each individual square
+        square_count (int): The number of squares in a given row or column i.e. board is square_count x square_count
+        color_dark (pygame.Color): The color of the dark squares
+        color_light (pygame.Color): The color of the light squares
+        window (pygame.Surface): The game window's surface
+
+    Attributes:
+        struct (list[list[Piece | None]]): 2D grid storing pieces or None
+        surface (pygame.Surface): Base surface / Image of the board
+        highlighted_surface (pygame.Surface): Transparent overlay surface for highlighting
+        rect (pygame.Rect): Position and size of the board relative to the window
+        highlighted_squares list[tuple[int, int]]: Squares which are to be highlighted stored as a list of (row,col) tuples.
+
+    """
+
+    def __init__(
+        self,
+        square_size: int,
+        square_count: int,
+        color_dark: pygame.Color,
+        color_light: pygame.Color,
+        window: pygame.Surface,
+    ):
+        super().__init__(square_size, square_count)
+        self.init_struct()
+        self.color_light: pygame.Color = color_light
+        self.color_dark: pygame.Color = color_dark
+        self.window: pygame.Surface = window
+        self.pos_x = BOARDPOSX
+        self.pos_y = BOARDPOSY
+        self.surface: pygame.Surface = pygame.Surface(
+            (square_count * square_size, square_count * square_size)
+        )
+        self.highlighted_surface: pygame.Surface = pygame.Surface(
+            (square_count * square_size, square_count * square_size), flags=ALPHA_FLAG
+        )
+        self.rect: pygame.Rect = self.surface.get_rect(topleft=(self.pos_x, self.pos_y))
+        self._draw_base_board()
+        self.highlighted_squares: dict[tuple[int, int], pygame.Color] = {}
+
+
+    def _draw_base_board(self):
+        """
+        Colors the board with a checkerboard style, with the first (top-left) square being the self.light_color
+        """
+        # we go through the board and for each square, we "blit" onto the board the current square.
+        for row in range(self.square_count):
+            for col in range(self.square_count):
+                self.color_square(row, col)
+
+    def highlight_square(
+        self, row_index: int, col_index: int, color: pygame.Color, alpha=128
+    ):
+        """
+        Highlights an individual square by drawing over the semi-transparent highlighted surface
+
+        Args:
+            row_index (int): The row index of the square to highlight
+            col_index (int): The col index of the square to highlight
+            color (pygame.Color): The highlight Color
+            alpha (int): Transparency level from 0-255, Optional. Defaults to 128
+        """
+        square = pygame.Surface((SQUARESIZE, SQUARESIZE), flags=ALPHA_FLAG)
+        square.fill((*color, alpha))
+        self.highlighted_surface.blit(
+            square, (col_index * SQUARESIZE, row_index * SQUARESIZE)
+        )
+
+    def draw_highlights(self, highlight_dict):
+        """
+        Clears highlights and redraws highlights onto the highlight surface
+
+        Args:
+            color (pygame.Color): The color used to highlight the entire surface
+        """
+        self.clear_highlights()
+        #for color, squares in Highlights:
+        for color, squares in highlight_dict.items():
+            for square in squares:
+                self.highlight_square(*square, color)
+        self.window.blit(self.highlighted_surface, (self.pos_x, self.pos_y))
+
+    def clear_highlights(self):
+        self.highlighted_surface.fill((0, 0, 0, 0))
+
+    def color_square(
+        self,
+        row_index: int,
+        col_index: int,
+        color: pygame.Color = None,
+        highlight: bool = False,
+    ):
+        """
+        Colors an individual square on the board.
+        If no color is provided it colors based on the default checkerboard pattern and its (row, col) position
+        If highlight is True, a semi-transparent version of the color is provided
+
+        Args:
+            row_index (int) : The row index of the square
+            col_index (int) : the col_index of the square
+            Color (pygame.Color, optional) : the color of the square, if None defaults to dark / light
+            highlight (bool, optional) : Flag to check if semi-transparent highlight is used. Default is False
+
+        """
+        square = pygame.Surface((SQUARESIZE, SQUARESIZE))
+        if color is None:
+            color = (
+                self.color_dark
+                if (row_index + col_index) % 2 == 1
+                else self.color_light
+            )
+        flags = ALPHA_FLAG if highlight else 0
+        square = pygame.Surface((SQUARESIZE, SQUARESIZE), flags=flags)
+        if highlight:
+            square.fill(*color, 128)
+        else:
+            square.fill(color)
+        self.surface.blit(square, (col_index * SQUARESIZE, row_index * SQUARESIZE))
 
     def draw_pieces(self):
         """
@@ -444,19 +485,11 @@ class Board:
         """
         self.highlighted_squares = {}
 
-    def get_checking_pieces(self, current_player : Team, enemy_team : Team):
-        checking_pieces = {}
-        kings_grid_pos = current_player.king.get_grid_pos()
+def VirtualBoard(BoardCore):
+    def __self__(self, board : GameBoard):
+        super.__init__(board.square_size, board.square_count)
+        # VirtualBoard changes the initailization of the struct object so it does not make a call to
+        # BoardCore.init_struct
+        self.struct = deepcopy(board.struct)
 
-        for enemy_piece in enemy_team.get_active_pieces():
-            enemy_pieces_moves = self.generate_legal_moves(enemy_piece)
-            if kings_grid_pos in enemy_pieces_moves:
-                enemy_piece_current_pos = enemy_piece.get_grid_pos()
-                checking_pieces[enemy_piece] = enemy_piece_current_pos
-
-        return checking_pieces
-
-
-def Board(VirtualBoard):
-    def __self__(board : Board):
-        super.__init__()
+    
