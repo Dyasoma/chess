@@ -1,4 +1,5 @@
 import pygame
+import sys
 from random import randint
 from objects.constants import (
     WINDOWWIDTH,
@@ -6,7 +7,7 @@ from objects.constants import (
     SQUARESIZE,
     SQUARECOUNT,
     DARKCOLOR,
-    LIGHTCOLOR, 
+    LIGHTCOLOR,
     WHITEPLAYER,
     BLACKPLAYER,
     BLACK,
@@ -15,25 +16,27 @@ from objects.constants import (
 )
 
 
-from objects.board import Board
+from objects.board import GameBoard
 from objects.game_state import GameState
 from objects.team import Team
 
+
 FPS = 60
+
 # TODO:
-# VALID SQUARE SELECT AND VALID MOVE SELECT IN BOARD NEED TO FIXED
-# Game State is next
+# Add move tracking. i.e. after move print something like p moves to e7 or queen takes black pawn at e5
+#
 def setup():
     pygame.init()
     window = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     pygame.display.set_caption("Chess")  # window title
     window.fill(GREY)
-    chessboard = Board(
+    chessboard = GameBoard(
         SQUARESIZE, SQUARECOUNT, DARKCOLOR, LIGHTCOLOR, window
     )  # create a board
     chessboard.draw_board()
     pygame.display.update()
-    black_player = Team(BLACKPLAYER, BLACK) 
+    black_player = Team(BLACKPLAYER, BLACK)
     white_player = Team(WHITEPLAYER, WHITE)
     chessboard.set_pieces(black_player.active_pieces, white_player.active_pieces)
     return (True, pygame.time.Clock(), chessboard, black_player, white_player)
@@ -49,9 +52,7 @@ def main():
             game_is_running = False
             break
         game_state.handle_events()
-
         game_state.update_state()
-
         game_state.render()
         delta_report += 1
         clock.tick(FPS)
@@ -66,8 +67,6 @@ def main():
             print("\n"*2)
             delta_report = 0
         """
-
-
 
         pygame.display.update()
     pygame.quit()
