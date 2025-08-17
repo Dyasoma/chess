@@ -6,6 +6,8 @@ from .constants import (
     ENDTURN,
     GREEN,
     RED,
+    GOLD,
+    BLUE,
     BLACK,
     WHITE,
 )
@@ -107,16 +109,18 @@ class GameState:
         """
         if state == STARTTURN:
             self.checking_pieces = self.board.get_checking_pieces(self.current_player, self.other_player)
-            self.move_dict = self.board.build_move_dict(self.current_player)
+            self.move_dict = self.board.build_move_dict(self.current_player, self.other_player)
 
 
         elif state == SELECTPIECE:
             if self.checking_pieces:
                 self.board.add_highlighted_squares(RED, list(self.checking_pieces.values()))
+                self.board.add_highlighted_squares(GOLD, [self.current_player.king.get_grid_pos(),])
         elif state == SELECTMOVE:
             assert self.selected_piece is not None
             #self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
             self.board.add_highlighted_squares(GREEN, self.move_dict[self.selected_piece])
+            self.board.add_highlighted_squares(BLUE, [self.selected_piece.get_grid_pos(),])
         elif state == SELECTPROMOTION:
             assert self.selected_piece is not None
             assert self.selected_piece.is_promotable()
@@ -194,7 +198,7 @@ class GameState:
         # generate associated move data
         if self.mouse_pressed:  # event
             # validate event
-            legal_moves = self.move_dict[self.selected_piece]
+            legal_moves = self.move_dict[self.selected_piece]   
             if legal_moves:
                 if self.valid_square_selected(self.mouse_pos):
                     row, col = self.board.mouse_pos_to_grid(self.mouse_pos)

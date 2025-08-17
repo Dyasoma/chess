@@ -104,6 +104,9 @@ class Piece:
 
     def get_grid_pos(self):
         return (self.row, self.col)
+    
+    def get_type(self):
+        return self.type
 
 class SlidingPiece(Piece):
     """

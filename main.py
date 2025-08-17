@@ -23,7 +23,6 @@ from objects.team import Team
 
 FPS = 60
 
-
 # TODO:
 # Add move tracking. i.e. after move print something like p moves to e7 or queen takes black pawn at e5
 #

@@ -1,5 +1,5 @@
 import pygame
-from copy import deepcopy
+from copy import deepcopy, copy
 from .constants import (
     BOARDPOSX,
     BOARDPOSY,
@@ -98,7 +98,15 @@ class BoardCore:
             raise ValueError("Invalid row or column")
         return self.struct[row][col]
     
-    def generate_legal_moves(self, piece: Piece | None) -> list[tuple[int, int]]:
+
+    def generate_valid_moves(self, piece : Piece, ):
+        if piece is not None:
+            valid_moves = piece.generate_valid_moves(self)
+            return valid_moves
+
+
+
+    def generate_legal_moves(self, piece: Piece | None, team : Team, enemy : Team) -> list[tuple[int, int]]:
         """
         Returns the legal moves for a given piece.
         Currently only returns valid moves as determined by the piece.
@@ -109,27 +117,36 @@ class BoardCore:
         Returns:
             list[tuple[int, int]]: a list of legal moves positions stored as (row, col) tuples.
         """
+        is_king = False
         if piece is not None:
             # first generate valid moves.
+            if piece.get_type() == "king":
+                is_king = True
             valid_moves = piece.generate_valid_moves(self)
-
+            #ghost_board = VirtualBoard(self)
             # now filter for legal moves
-            
-            """
-            valid_moves = piece.generate_valid_moves(self)
-            now we remove moves that are not legal. To do this we must simulate the board after the move
-            legal_moves = self.comb_illegal_moves(self, piece, valid_moves)
+            # go through each valid move and check if it is legal
+            legal_moves = []
+            for move in valid_moves:
+                ghost_piece = copy(piece)
+                ghost_board = VirtualBoard(self)
+                # apply the move
+                ghost_board.move_piece(ghost_piece, *move)
+                if not ghost_board.get_checking_pieces(team, enemy, move, is_king): # king not in check
+                    legal_moves.append(move)
+            # This is done by simulating the move and checking if the king is in check
             return legal_moves
-            """
+
+        
         else:
             return []
 
 
-    def build_move_dict(self, team : Team) -> dict[Piece, list[tuple[int, int]]]:
+    def build_move_dict(self, team : Team, enemy : Team) -> dict[Piece, list[tuple[int, int]]]:
         move_dict = {}
         # assume we are building valid moves, will add legal move stuff
         for piece in team.get_active_pieces():
-            move_dict[piece] = self.generate_legal_moves(piece)
+            move_dict[piece] = self.generate_legal_moves(piece, team, enemy)
         return move_dict
 
 
@@ -235,7 +252,7 @@ class BoardCore:
         kings_grid_pos = current_player.king.get_grid_pos()
 
         for enemy_piece in enemy_team.get_active_pieces():
-            enemy_pieces_moves = self.generate_legal_moves(enemy_piece)
+            enemy_pieces_moves = self.generate_valid_moves(enemy_piece)
             if kings_grid_pos in enemy_pieces_moves:
                 enemy_piece_current_pos = enemy_piece.get_grid_pos()
                 checking_pieces[enemy_piece] = enemy_piece_current_pos
@@ -485,11 +502,38 @@ class GameBoard(BoardCore):
         """
         self.highlighted_squares = {}
 
-def VirtualBoard(BoardCore):
-    def __self__(self, board : GameBoard):
-        super.__init__(board.square_size, board.square_count)
+class VirtualBoard(BoardCore):
+    def __init__(self, board):
+        super().__init__(board.square_size, board.square_count)
         # VirtualBoard changes the initailization of the struct object so it does not make a call to
         # BoardCore.init_struct
-        self.struct = deepcopy(board.struct)
-
+        self.square_count = board.square_count
+        self.struct = self.copy(board.struct)
     
+    def get_checking_pieces(self, current_player : Team, enemy_team : Team, move = None, is_king = False):
+        checking_pieces = {}
+        if is_king:
+            kings_grid_pos = move
+        else: 
+            kings_grid_pos = current_player.king.get_grid_pos()
+
+        for enemy_piece in enemy_team.get_active_pieces():
+            if enemy_piece.get_grid_pos() == move:
+                continue
+            enemy_pieces_moves = self.generate_valid_moves(enemy_piece)
+            if kings_grid_pos in enemy_pieces_moves:
+                enemy_piece_current_pos = enemy_piece.get_grid_pos()
+                checking_pieces[enemy_piece] = enemy_piece_current_pos
+
+        return checking_pieces
+
+
+    def copy(self, lst : list[Piece]):
+        grid = []
+        for row in range(self.square_count):
+            grid_row = []
+            for col in range(self.square_count):
+                grid_row.append(lst[row][col])
+            grid.append(grid_row)
+        return grid
+
