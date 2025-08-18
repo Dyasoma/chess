@@ -77,7 +77,6 @@ class Team:
         ]
         self.king = king
         return pieces
-    
 
     def owns(self, piece: Piece) -> bool:
         """
@@ -91,6 +90,7 @@ class Team:
 
     def get_king_position(self):
         self.king
+
     def get_active_pieces(self):
         return self.active_pieces
 

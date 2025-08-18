@@ -56,11 +56,12 @@ class GameState:
         self.captured_piece: Piece | None = (
             None  # captured pieces during current players turn
         )
-        self.move_dict : dict[Piece, list[tuple[int, int]]] | None = None
-          # a move dictionary for the legal moves a player can make
-        self.checking_pieces: dict[
-            Piece, tuple[int, int]] = {}  # pieces of the other player that are checking the current player
-        self.state: int = STARTTURN # state variable
+        self.move_dict: dict[Piece, list[tuple[int, int]]] | None = None
+        # a move dictionary for the legal moves a player can make
+        self.checking_pieces: dict[Piece, tuple[int, int]] = (
+            {}
+        )  # pieces of the other player that are checking the current player
+        self.state: int = STARTTURN  # state variable
         self.board: GameBoard = board
         self.dark_team: Team = dark_team
         self.light_team: Team = light_team
@@ -110,22 +111,39 @@ class GameState:
         Contains the actual "actions" of a given state
         """
         if state == STARTTURN:
-            self.checking_pieces = self.board.get_checking_pieces(self.current_player, self.other_player)
+            self.checking_pieces = self.board.get_checking_pieces(
+                self.current_player, self.other_player
+            )
             if self.checking_pieces:
                 self.current_player.king.set_in_check(True)
-            self.move_dict = self.board.build_move_dict(self.current_player, self.other_player)
-
+            self.move_dict = self.board.build_move_dict(
+                self.current_player, self.other_player
+            )
 
         elif state == SELECTPIECE:
             if self.checking_pieces:
-                self.board.add_highlighted_squares(RED, list(self.checking_pieces.values()))
-                self.board.add_highlighted_squares(GOLD, [self.current_player.king.get_grid_pos(),])
+                self.board.add_highlighted_squares(
+                    RED, list(self.checking_pieces.values())
+                )
+                self.board.add_highlighted_squares(
+                    GOLD,
+                    [
+                        self.current_player.king.get_grid_pos(),
+                    ],
+                )
 
         elif state == SELECTMOVE:
             assert self.selected_piece is not None
-            #self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
-            self.board.add_highlighted_squares(GREEN, self.move_dict[self.selected_piece])
-            self.board.add_highlighted_squares(BLUE, [self.selected_piece.get_grid_pos(),])
+            # self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
+            self.board.add_highlighted_squares(
+                GREEN, self.move_dict[self.selected_piece]
+            )
+            self.board.add_highlighted_squares(
+                BLUE,
+                [
+                    self.selected_piece.get_grid_pos(),
+                ],
+            )
         elif state == SELECTPROMOTION:
             assert self.selected_piece is not None
             assert self.selected_piece.is_promotable()
@@ -164,11 +182,12 @@ class GameState:
         elif self.state == ENDTURN:
             self.set_captured_piece(None)
             self.set_selected_piece(None)
-            self.current_player.king.set_in_check(False) # assumes that the move was valid
+            self.current_player.king.set_in_check(
+                False
+            )  # assumes that the move was valid
             self.teardown_promo_menu()
             self.checking_pieces = {}
             self.move_dict = {}
-
 
     def handle_turn_start(self):
 
@@ -176,7 +195,6 @@ class GameState:
             self.change_state_to(GAMEEND)
         else:
             self.change_state_to(SELECTPIECE)
-
 
     def handle_piece_selection(self):
         """
@@ -214,7 +232,7 @@ class GameState:
         # generate associated move data
         if self.mouse_pressed:  # event
             # validate event
-            legal_moves = self.move_dict[self.selected_piece]   
+            legal_moves = self.move_dict[self.selected_piece]
             if legal_moves:
                 if self.valid_square_selected(self.mouse_pos):
                     row, col = self.board.mouse_pos_to_grid(self.mouse_pos)
@@ -345,10 +363,10 @@ class GameState:
 
     def get_state(self):
         return self.state
-    
+
     def get_game_is_running(self):
         return self.game_is_running
-    
+
     def end_game_is_running(self):
         self.game_is_running = False
 
@@ -364,4 +382,3 @@ class GameState:
             if value:
                 return False
         return True
-

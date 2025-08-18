@@ -104,9 +104,10 @@ class Piece:
 
     def get_grid_pos(self):
         return (self.row, self.col)
-    
+
     def get_type(self):
         return self.type
+
 
 class SlidingPiece(Piece):
     """
@@ -290,7 +291,6 @@ class King(Piece):
         super().__init__(color, row, col, type)
         self.has_moved = False
         self.in_check = False
-
 
     def set_in_check(self, value):
         assert type(value) is bool

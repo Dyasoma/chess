@@ -17,15 +17,15 @@ from .team import Team
 
 
 class BoardCore:
-    def __init__(self, square_size: int,square_count: int):
+    def __init__(self, square_size: int, square_count: int):
         self.square_size = square_size
         self.square_count = square_count
-        self.struct: list[list[Piece | None]] = None # delayed setup
+        self.struct: list[list[Piece | None]] = None  # delayed setup
 
     def init_struct(self):
         """
         This function exists so that virtual boards don't need to populate an empty board
-        and can just copy directly. Must be called by objects that require the struct attribute and 
+        and can just copy directly. Must be called by objects that require the struct attribute and
         Don't change the initialization.
         """
         self.struct = self._create_board_struct()
@@ -45,7 +45,7 @@ class BoardCore:
                 row.append(None)
             struct.append(row)
         return struct
-    
+
     def set_piece(self, piece: Piece):
         """
         Places piece on the board at its specified (row, col) position
@@ -69,7 +69,7 @@ class BoardCore:
             self.struct[row][col] = piece
         else:
             raise ValueError(f"Square is occupied at ({row}, {col})")
-        
+
     def is_empty(self, row: int, col: int) -> bool:
         """
         Checks if given square is empty
@@ -84,7 +84,7 @@ class BoardCore:
         if not self.in_bounds(row, col):
             raise IndexError(f"Position out of bounds: ({row}, {col})")
         return self.get_square_contents(row, col) is None
-    
+
     def get_square_contents(self, row: int, col: int) -> Piece | None:
         """
         Returns the piece at the board position board(row, col), or None if the square is empty
@@ -97,16 +97,18 @@ class BoardCore:
         if not (0 <= row < SQUARECOUNT and 0 <= col < SQUARECOUNT):
             raise ValueError("Invalid row or column")
         return self.struct[row][col]
-    
 
-    def generate_valid_moves(self, piece : Piece, ):
+    def generate_valid_moves(
+        self,
+        piece: Piece,
+    ):
         if piece is not None:
             valid_moves = piece.generate_valid_moves(self)
             return valid_moves
 
-
-
-    def generate_legal_moves(self, piece: Piece | None, team : Team, enemy : Team) -> list[tuple[int, int]]:
+    def generate_legal_moves(
+        self, piece: Piece | None, team: Team, enemy: Team
+    ) -> list[tuple[int, int]]:
         """
         Returns the legal moves for a given piece.
         Currently only returns valid moves as determined by the piece.
@@ -123,7 +125,7 @@ class BoardCore:
             if piece.get_type() == "king":
                 is_king = True
             valid_moves = piece.generate_valid_moves(self)
-            #ghost_board = VirtualBoard(self)
+            # ghost_board = VirtualBoard(self)
             # now filter for legal moves
             # go through each valid move and check if it is legal
             legal_moves = []
@@ -132,26 +134,24 @@ class BoardCore:
                 ghost_board = VirtualBoard(self)
                 # apply the move
                 ghost_board.move_piece(ghost_piece, *move)
-                if not ghost_board.get_checking_pieces(team, enemy, move, is_king): # king not in check
+                if not ghost_board.get_checking_pieces(
+                    team, enemy, move, is_king
+                ):  # king not in check
                     legal_moves.append(move)
             # This is done by simulating the move and checking if the king is in check
             return legal_moves
 
-        
         else:
             return []
 
-
-    def build_move_dict(self, team : Team, enemy : Team) -> dict[Piece, list[tuple[int, int]]]:
+    def build_move_dict(
+        self, team: Team, enemy: Team
+    ) -> dict[Piece, list[tuple[int, int]]]:
         move_dict = {}
         # assume we are building valid moves, will add legal move stuff
         for piece in team.get_active_pieces():
             move_dict[piece] = self.generate_legal_moves(piece, team, enemy)
         return move_dict
-
-
-
-
 
     def in_bounds(self, row: int, col: int) -> bool:
         """
@@ -246,8 +246,8 @@ class BoardCore:
         team.active_pieces.remove(piece)
         team.active_pieces.append(new_piece)
         return new_piece
-    
-    def get_checking_pieces(self, current_player : Team, enemy_team : Team):
+
+    def get_checking_pieces(self, current_player: Team, enemy_team: Team):
         checking_pieces = {}
         kings_grid_pos = current_player.king.get_grid_pos()
 
@@ -258,6 +258,7 @@ class BoardCore:
                 checking_pieces[enemy_piece] = enemy_piece_current_pos
 
         return checking_pieces
+
 
 class GameBoard(BoardCore):
     """
@@ -304,7 +305,6 @@ class GameBoard(BoardCore):
         self._draw_base_board()
         self.highlighted_squares: dict[tuple[int, int], pygame.Color] = {}
 
-
     def _draw_base_board(self):
         """
         Colors the board with a checkerboard style, with the first (top-left) square being the self.light_color
@@ -340,7 +340,7 @@ class GameBoard(BoardCore):
             color (pygame.Color): The color used to highlight the entire surface
         """
         self.clear_highlights()
-        #for color, squares in Highlights:
+        # for color, squares in Highlights:
         for color, squares in highlight_dict.items():
             for square in squares:
                 self.highlight_square(*square, color)
@@ -487,7 +487,9 @@ class GameBoard(BoardCore):
         ## Perhaps move this method out of the board class and into the menu class
         self.window.blit(promo.surface, (promo.x + self.pos_x, promo.y + self.pos_y))
 
-    def add_highlighted_squares(self, color : pygame.Color, squares: list[tuple[int, int]]):
+    def add_highlighted_squares(
+        self, color: pygame.Color, squares: list[tuple[int, int]]
+    ):
         """
         Sets the highlighted_squares attribute of the board.
 
@@ -502,6 +504,7 @@ class GameBoard(BoardCore):
         """
         self.highlighted_squares = {}
 
+
 class VirtualBoard(BoardCore):
     def __init__(self, board):
         super().__init__(board.square_size, board.square_count)
@@ -509,12 +512,14 @@ class VirtualBoard(BoardCore):
         # BoardCore.init_struct
         self.square_count = board.square_count
         self.struct = self.copy(board.struct)
-    
-    def get_checking_pieces(self, current_player : Team, enemy_team : Team, move = None, is_king = False):
+
+    def get_checking_pieces(
+        self, current_player: Team, enemy_team: Team, move=None, is_king=False
+    ):
         checking_pieces = {}
         if is_king:
             kings_grid_pos = move
-        else: 
+        else:
             kings_grid_pos = current_player.king.get_grid_pos()
 
         for enemy_piece in enemy_team.get_active_pieces():
@@ -527,8 +532,7 @@ class VirtualBoard(BoardCore):
 
         return checking_pieces
 
-
-    def copy(self, lst : list[Piece]):
+    def copy(self, lst: list[Piece]):
         grid = []
         for row in range(self.square_count):
             grid_row = []
@@ -536,4 +540,3 @@ class VirtualBoard(BoardCore):
                 grid_row.append(lst[row][col])
             grid.append(grid_row)
         return grid
-
