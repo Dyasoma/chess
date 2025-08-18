@@ -289,6 +289,15 @@ class King(Piece):
     def __init__(self, color: pygame.Color, row: int, col: int, type: str):
         super().__init__(color, row, col, type)
         self.has_moved = False
+        self.in_check = False
+
+
+    def set_in_check(self, value):
+        assert type(value) is bool
+        self.in_check = value
+
+    def get_check_status(self):
+        return self.in_check
 
     def generate_valid_moves(self, board):
         """
