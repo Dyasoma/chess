@@ -4,6 +4,7 @@ from .constants import (
     SELECTMOVE,
     SELECTPROMOTION,
     ENDTURN,
+    GAMEEND,
     GREEN,
     RED,
     GOLD,
@@ -66,6 +67,7 @@ class GameState:
         self.current_player: Team = self.light_team
         self.other_player: Team = self.dark_team
         self.promotion_menu = None
+        self.game_is_running = True
         self.on_enter_new_state(STARTTURN)
 
     def handle_events(self):
@@ -109,6 +111,8 @@ class GameState:
         """
         if state == STARTTURN:
             self.checking_pieces = self.board.get_checking_pieces(self.current_player, self.other_player)
+            if self.checking_pieces:
+                self.current_player.king.set_in_check(True)
             self.move_dict = self.board.build_move_dict(self.current_player, self.other_player)
 
 
@@ -116,6 +120,7 @@ class GameState:
             if self.checking_pieces:
                 self.board.add_highlighted_squares(RED, list(self.checking_pieces.values()))
                 self.board.add_highlighted_squares(GOLD, [self.current_player.king.get_grid_pos(),])
+
         elif state == SELECTMOVE:
             assert self.selected_piece is not None
             #self.set_legal_moves(self.board.generate_legal_moves(self.selected_piece))
@@ -133,6 +138,12 @@ class GameState:
                 self.other_player.active_pieces.remove(self.captured_piece)
                 self.other_player.captured_pieces.append(self.captured_piece)
             self.update_current_player(self.captured_piece)
+        elif state == GAMEEND:
+            if self.current_player.king.get_check_status():
+                print(f"{self.other_player} Has Won, Game over")
+            else:
+                print(f"Stalemate, No one has won")
+            self.end_game_is_running()
 
     def on_exit_current_state(self):
         "Generally exit states are for cleaning up"
@@ -153,13 +164,18 @@ class GameState:
         elif self.state == ENDTURN:
             self.set_captured_piece(None)
             self.set_selected_piece(None)
+            self.current_player.king.set_in_check(False) # assumes that the move was valid
             self.teardown_promo_menu()
             self.checking_pieces = {}
             self.move_dict = {}
 
 
     def handle_turn_start(self):
-        self.change_state_to(SELECTPIECE)
+
+        if self.move_dict and self.move_dict_is_empty():
+            self.change_state_to(GAMEEND)
+        else:
+            self.change_state_to(SELECTPIECE)
 
 
     def handle_piece_selection(self):
@@ -329,9 +345,23 @@ class GameState:
 
     def get_state(self):
         return self.state
+    
+    def get_game_is_running(self):
+        return self.game_is_running
+    
+    def end_game_is_running(self):
+        self.game_is_running = False
 
     def print_current_player(self):
         if self.current_player == self.dark_team:
             return "Black Player"
         elif self.current_player == self.light_team:
             return "White Player"
+
+    def move_dict_is_empty(self):
+        assert self.move_dict is not None
+        for value in self.move_dict.values():
+            if value:
+                return False
+        return True
+
